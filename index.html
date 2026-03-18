@@ -83,11 +83,12 @@ function get(id){
 
 async function loadAll(){
   const res = await fetch(BASE + "/index.json");
-  const list = await res.json();
+  const json = await res.json();
+  const list = json.files;
 
   let all=[];
   for(const file of list){
-    const r = await fetch(BASE + "/chunks/" + file);
+    const r = await fetch(BASE + "/" + file);
     const data = await r.json();
     all = all.concat(data);
   }
