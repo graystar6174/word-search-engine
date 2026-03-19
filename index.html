@@ -36,11 +36,17 @@
 
     .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
-    .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+    .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; position: relative; }
     .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    /* selectの外枠にスタイルを当てる */
-    .add-cond { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; outline: none; }
-    
+
+    /* カスタムプルダウンのスタイル */
+    .custom-select-container { position: relative; }
+    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; display: inline-block; }
+    .custom-options { display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 200px; padding: 5px 0; }
+    .custom-options div { padding: 8px 15px; cursor: pointer; font-size: 0.9rem; color: var(--text); }
+    .custom-options div:hover { background: #f0f7ff; color: var(--primary); }
+    .custom-options.show { display: block; }
+
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
     th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
     td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
@@ -68,8 +74,11 @@
         <div id="dynamic-fields"></div>
 
         <div class="button-area">
-          <select class="add-cond" id="add-select" oninput="addNewField(this)">
-          </select>
+          <div class="custom-select-container">
+            <div class="custom-select-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
+            <div class="custom-options" id="custom-options">
+              </div>
+          </div>
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
         </div>
       </div>
@@ -101,6 +110,18 @@ const COND_MASTER = [
 
 window.onload = updateDropdown;
 
+// メニューの外をクリックしたら閉じる
+window.onclick = function(e) {
+  if (!e.target.matches('.custom-select-trigger')) {
+    document.getElementById('custom-options').classList.remove('show');
+  }
+};
+
+function toggleDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('custom-options').classList.toggle('show');
+}
+
 function togglePanel() {
   const content = document.getElementById('panel-content');
   const summary = document.getElementById('search-summary');
@@ -126,7 +147,8 @@ function updateSummary() {
     const v2 = row.querySelector('.val2')?.value || "?";
     if(type==='n-pos') items.push(`${v1}文字目：${v2}`);
     if(type==='contains-n') {
-      const opText = row.querySelector('.op').options[row.querySelector('.op').selectedIndex].text;
+      const op = row.querySelector('.op');
+      const opText = op.options[op.selectedIndex].text;
       items.push(`「${v1}」${v2}回(${opText})`);
     }
     if(type==='all-in') items.push(`全含：${v1}`);
@@ -143,31 +165,27 @@ function updateSummary() {
     : '<span class="summary-item">条件なし</span>';
 }
 
-function addNewField(sel) {
-  const v = sel.value; 
-  if(!v) return;
-
+function addNewField(val) {
   const container = document.getElementById('dynamic-fields');
   const row = document.createElement('div');
   row.className = 'cond-row';
-  row.dataset.type = v;
+  row.dataset.type = val;
   
   let h = '';
-  if(v==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
-  if(v==='contains-n') h = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
-  if(v==='all-in') h = `全て含む：<input type="text" class="val1 input-short">`;
-  if(v==='seq') h = `<input type="text" class="val1 input-short"> の並びを含む`; 
-  if(v==='rhyme-full') h = `韻(完全)：<input type="text" class="val1 input-rhyme-full">`;
-  if(v==='rhyme-end') h = `脚韻：<input type="text" class="val1 input-rhyme-end">`;
-  if(v==='replace') h = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
-  if(v==='only') h = `文字のみ：<input type="text" class="val1 input-short">`;
-  if(v==='excl') h = `除外文字：<input type="text" class="val1 input-short">`;
+  if(val==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
+  if(val==='contains-n') h = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
+  if(val==='all-in') h = `全て含む：<input type="text" class="val1 input-short">`;
+  if(val==='seq') h = `<input type="text" class="val1 input-short"> の並びを含む`; 
+  if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1 input-rhyme-full">`;
+  if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1 input-rhyme-end">`;
+  if(val==='replace') h = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
+  if(val==='only') h = `文字のみ：<input type="text" class="val1 input-short">`;
+  if(val==='excl') h = `除外文字：<input type="text" class="val1 input-short">`;
 
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
   container.appendChild(row);
 
-  // 重要：値を完全にクリアし、ドロップダウンを強制的に再構築する
-  sel.value = ""; 
+  document.getElementById('custom-options').classList.remove('show');
   updateDropdown();
 }
 
@@ -177,39 +195,24 @@ function removeField(btn) {
 }
 
 function updateDropdown() {
-  const sel = document.getElementById('add-select');
+  const optionsDiv = document.getElementById('custom-options');
   const current = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
   const hasRhyme = current.some(t => t === 'rhyme-full' || t === 'rhyme-end');
 
-  // ブラウザの「選択記憶」を破壊するため、innerHTMLを完全にリセット
-  sel.innerHTML = '';
-  
-  // ダミーの先頭要素を追加
-  const placeholder = document.createElement('option');
-  placeholder.value = "";
-  placeholder.textContent = "＋ 条件を追加";
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  placeholder.hidden = true;
-  sel.appendChild(placeholder);
+  optionsDiv.innerHTML = '';
 
   COND_MASTER.forEach(m => {
     let shouldHide = false;
-    // 韻グループ排他
     if(m.group === 'rhyme' && hasRhyme) shouldHide = true;
-    // 1回限定項目
     if(!m.multi && current.includes(m.val)) shouldHide = true;
 
     if(!shouldHide) {
-      const opt = document.createElement('option');
-      opt.value = m.val;
+      const opt = document.createElement('div');
       opt.textContent = m.text;
-      sel.appendChild(opt);
+      opt.onclick = () => addNewField(m.val); // クリックイベントを直接付与
+      optionsDiv.appendChild(opt);
     }
   });
-  
-  // 選択インデックスを強制的に未選択（-1）または0に戻す
-  sel.selectedIndex = 0;
 }
 
 async function doSearch() {
