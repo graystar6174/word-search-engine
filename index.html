@@ -9,19 +9,35 @@
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; }
     .container { max-width: 1000px; margin: 0 auto; }
     .search-panel { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-    .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+    
+    /* 基本条件のグリッド */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+    .input-group { display: flex; flex-direction: column; }
     label { font-size: 0.8rem; color: #888; margin-bottom: 3px; }
+    
+    /* 追加条件のリストエリア */
+    #dynamic-fields { margin-bottom: 15px; }
+    .cond-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; }
+    .cond-row:last-child { border-bottom: none; }
+    .cond-label { font-size: 0.9rem; font-weight: bold; color: var(--primary); min-width: 80px; }
+    
     input, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; }
+    input[type="number"] { width: 60px; }
+    .input-text { flex-grow: 1; min-width: 100px; }
+
+    /* 削除ボタン */
+    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold; margin-left: auto; }
+    .btn-remove:hover { background: #ff5e5e; color: white; }
+
     .button-area { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; }
     .btn-search:disabled { background: #ccc; }
-    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; cursor: pointer; }
+    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
     th { background: #eef7fe; padding: 12px; border-bottom: 2px solid var(--border); text-align: left; }
     td { padding: 12px; border-bottom: 1px solid #eee; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; cursor: pointer; }
-    /* デバッグ用スタイル */
     #debug-console { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; margin-top: 20px; font-size: 12px; max-height: 200px; overflow-y: auto; display: none; }
   </style>
 </head>
@@ -30,28 +46,33 @@
     <h1 style="color:var(--primary); font-weight:normal; border-bottom: 1px solid var(--border); padding-bottom: 10px;">言葉の検索エンジン</h1>
     
     <div class="search-panel">
-      <div id="fields" class="grid">
-        <div class="input-group"><label>文字数</label><input type="number" id="len"></div>
-        <div class="input-group"><label>開始文字</label><input type="text" id="start"></div>
-        <div class="input-group"><label>終了文字</label><input type="text" id="end"></div>
-        <div class="input-group"><label>？検索</label><input type="text" id="wild"></div>
+      <div class="grid">
+        <div class="input-group"><label>文字数</label><input type="number" id="base-len"></div>
+        <div class="input-group"><label>開始文字</label><input type="text" id="base-start"></div>
+        <div class="input-group"><label>終了文字</label><input type="text" id="base-end"></div>
+        <div class="input-group"><label>？検索</label><input type="text" id="base-wild"></div>
       </div>
+
+      <div id="dynamic-fields"></div>
+
       <div class="button-area">
-        <button class="btn-search" onclick="doSearch()">検索を実行</button>
-        <select class="add-cond" onchange="addField(this)">
-          <option value="">＋ 追加条件</option>
+        <select class="add-cond" id="add-select" onchange="addNewField(this)">
+          <option value="">＋ 条件を追加</option>
           <option value="n-pos">n文字目の指定</option>
           <option value="contains-n">特定の文字をn回含む</option>
-          <option value="all-in">全て含む/並び順含む</option>
-          <option value="rhyme">韻（完全/脚韻）</option>
+          <option value="all-in">全て含む</option>
+          <option value="seq">並び順を含む</option>
+          <option value="rhyme-full">韻（完全一致）</option>
+          <option value="rhyme-end">韻（脚韻）</option>
           <option value="replace">置換して成り立つか</option>
-          <option value="only-excl">構成文字/除外文字</option>
+          <option value="only">構成文字のみ</option>
+          <option value="excl">除外文字</option>
         </select>
+        <button class="btn-search" onclick="doSearch()">検索を実行</button>
       </div>
     </div>
     
     <p id="status">条件を入力して「検索を実行」を押してください。</p>
-    
     <div id="debug-console"></div>
 
     <table>
@@ -64,31 +85,57 @@
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 const debugBox = document.getElementById("debug-console");
 
-// デバッグ用ログ出力関数
 function log(msg) {
   debugBox.style.display = "block";
   const line = document.createElement("div");
   line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   debugBox.appendChild(line);
-  console.log(msg);
 }
 
-function addField(sel){
+// 動的フィールドの管理
+function addNewField(sel) {
   const v = sel.value; if(!v) return;
-  const g = document.getElementById('fields');
-  let h = '';
-  if(v==='n-pos') h='<div class="input-group"><label>n位置</label><input type="number" id="nPos"></div><div class="input-group"><label>文字</label><input type="text" id="nVal"></div>';
-  if(v==='contains-n') h='<div class="input-group"><label>含む字</label><input type="text" id="char"></div><div class="input-group"><label>回数</label><input type="number" id="num"></div>';
-  if(v==='all-in') h='<div class="input-group"><label>全て含む</label><input type="text" id="all"></div><div class="input-group"><label>並び</label><input type="text" id="seq"></div>';
-  if(v==='rhyme') h='<div class="input-group"><label>韻完全</label><input type="text" id="bFull"></div><div class="input-group"><label>脚韻</label><input type="text" id="bEnd"></div>';
-  if(v==='replace') h='<div class="input-group"><label>置換前</label><input type="text" id="pre"></div><div class="input-group"><label>置換後</label><input type="text" id="post"></div>';
-  if(v==='only-excl') h='<div class="input-group"><label>のみ構成</label><input type="text" id="only"></div><div class="input-group"><label>除外文字</label><input type="text" id="excl"></div>';
-  g.insertAdjacentHTML('beforeend', h);
-  sel.options[sel.selectedIndex].disabled = true;
-  sel.value="";
+  const container = document.getElementById('dynamic-fields');
+  const row = document.createElement('div');
+  row.className = 'cond-row';
+  row.dataset.type = v;
+  
+  let content = '';
+  if(v==='n-pos') content = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:40px">`;
+  if(v==='contains-n') content = `<input type="text" class="val1" style="width:40px"> を <input type="number" class="val2"> 回含む`;
+  if(v==='all-in') content = `<span class="cond-label">全て含む</span> <input type="text" class="val1 input-text">`;
+  if(v==='seq') content = `<span class="cond-label">並び順</span> <input type="text" class="val1 input-text">`;
+  if(v==='rhyme-full') content = `<span class="cond-label">韻(完全)</span> <input type="text" class="val1 input-text">`;
+  if(v==='rhyme-end') content = `<span class="cond-label">脚韻</span> <input type="text" class="val1 input-text">`;
+  if(v==='replace') content = `<input type="text" class="val1" style="width:60px"> → <input type="text" class="val2" style="width:60px"> に置換可能`;
+  if(v==='only') content = `<span class="cond-label">文字のみ</span> <input type="text" class="val1 input-text">`;
+  if(v==='excl') content = `<span class="cond-label">除外文字</span> <input type="text" class="val1 input-text">`;
+
+  row.innerHTML = content + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
+  container.appendChild(row);
+
+  // 韻の排他制御
+  if(v.startsWith('rhyme')) updateRhymeOptions();
+  
+  sel.value = "";
 }
 
-function get(id){ return document.getElementById(id) ? document.getElementById(id).value : ""; }
+function removeField(btn) {
+  const row = btn.parentNode;
+  const type = row.dataset.type;
+  row.remove();
+  if(type.startsWith('rhyme')) updateRhymeOptions();
+}
+
+function updateRhymeOptions() {
+  const currentFields = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
+  const select = document.getElementById('add-select');
+  const optFull = select.querySelector('option[value="rhyme-full"]');
+  const optEnd = select.querySelector('option[value="rhyme-end"]');
+  
+  optFull.disabled = currentFields.includes('rhyme-end');
+  optEnd.disabled = currentFields.includes('rhyme-full');
+}
 
 async function doSearch() {
   const btn = document.querySelector(".btn-search");
@@ -97,84 +144,87 @@ async function doSearch() {
   
   btn.disabled = true;
   status.innerText = "データを読み込み中...";
-  debugBox.innerHTML = ""; // 前回のログをクリア
+  debugBox.innerHTML = "";
   tbody.innerHTML = "";
 
   try {
     log("検索開始...");
-    
-    // 1. インデックスを取得
-    log("index.jsonを取得中...");
     const resIdx = await fetch(`${REPO_URL}/index.json`);
-    if (!resIdx.ok) throw new Error(`index.jsonが見つかりません (${resIdx.status})`);
     const indexData = await resIdx.json();
-    log(`インデックス取得成功: ${indexData.files.length}個のファイルを読み込みます`);
 
-    // 2. 全チャンクを読み込む
     const promises = indexData.files.map(file => {
-      const safePath = file.split('/').map(part => encodeURIComponent(part)).join('/');
-      const url = `${REPO_URL}/${safePath}`;
-      log(`データ読み込み中: ${file}`);
-      return fetch(url).then(r => {
-        if (!r.ok) {
-          log(`警告: ${file} の読み込みに失敗しました`);
-          return [];
-        }
-        return r.json();
-      });
+      const safePath = file.split('/').map(p => encodeURIComponent(p)).join('/');
+      return fetch(`${REPO_URL}/${safePath}`).then(r => r.ok ? r.json() : []);
     });
 
     const chunkResults = await Promise.all(promises);
     const allData = chunkResults.flat();
-    log(`データ結合完了: 合計 ${allData.length} 件`);
     const allReadings = new Set(allData.map(r => String(r[1])));
 
-    // 3. 条件取得
-    const c = {
-      len: get('len'), start: get('start'), end: get('end'), wild: get('wild'),
-      nPos: get('nPos'), nVal: get('nVal'), char: get('char'), num: get('num'),
-      all: get('all'), seq: get('seq'), bFull: get('bFull'), bEnd: get('bEnd'),
-      pre: get('pre'), post: get('post'), only: get('only'), excl: get('excl')
+    // 条件の収集
+    const base = {
+      len: document.getElementById('base-len').value,
+      start: document.getElementById('base-start').value,
+      end: document.getElementById('base-end').value,
+      wild: document.getElementById('base-wild').value
     };
 
-    // 4. フィルタリング
-    log("フィルタリング実行中...");
+    const dynamicRows = Array.from(document.querySelectorAll('.cond-row')).map(row => ({
+      type: row.dataset.type,
+      v1: row.querySelector('.val1')?.value || "",
+      v2: row.querySelector('.val2')?.value || ""
+    }));
+
+    // フィルタリング
     const filtered = allData.filter(row => {
       const [word, reading, note, length, boin] = row;
-      if (c.len && length != c.len) return false;
-      if (c.start && !reading.startsWith(c.start)) return false;
-      if (c.end && !reading.endsWith(c.end)) return false;
-      if (c.nPos && reading[parseInt(c.nPos)-1] !== c.nVal) return false;
-      if (c.wild) {
-        const reg = new RegExp("^" + c.wild.replace(/？|\?/g, ".") + "$");
+
+      // 1. 基本条件 (AND)
+      if (base.len && length != base.len) return false;
+      if (base.start && !reading.startsWith(base.start)) return false;
+      if (base.end && !reading.endsWith(base.end)) return false;
+      if (base.wild) {
+        const reg = new RegExp("^" + base.wild.replace(/？|\?/g, ".") + "$");
         if (!reg.test(reading)) return false;
       }
-      if (c.char && c.num) {
-        const cnt = reading.split(c.char).length - 1;
-        if (cnt != c.num) return false;
-      }
-      if (c.all) {
-        for (let ch of c.all) {
-          const req = c.all.split(ch).length - 1;
-          const act = reading.split(ch).length - 1;
-          if (act < req) return false;
+
+      // 2. 追加条件 (AND)
+      for (const c of dynamicRows) {
+        if (c.type === 'n-pos' && c.v1 && c.v2) {
+          if (reading[parseInt(c.v1) - 1] !== c.v2) return false;
         }
-      }
-      if (c.seq && !reading.includes(c.seq)) return false;
-      if (c.only && !(new RegExp(`^[${c.only}]+$`).test(reading))) return false;
-      if (c.excl && (new RegExp(`[${c.excl}]`).test(reading))) return false;
-      if (c.bFull && boin !== c.bFull) return false;
-      if (c.bEnd && !boin.endsWith(c.bEnd)) return false;
-      if (c.pre && c.post) {
-        if (!reading.includes(c.pre)) return false;
-        const rep = reading.split(c.pre).join(c.post);
-        if (!allReadings.has(rep)) return false;
+        else if (c.type === 'contains-n' && c.v1 && c.v2) {
+          if ((reading.split(c.v1).length - 1) != c.v2) return false;
+        }
+        else if (c.type === 'all-in' && c.v1) {
+          for (let ch of c.v1) {
+            if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false;
+          }
+        }
+        else if (c.type === 'seq' && c.v1) {
+          if (!reading.includes(c.v1)) return false;
+        }
+        else if (c.type === 'rhyme-full' && c.v1) {
+          if (boin !== c.v1) return false;
+        }
+        else if (c.type === 'rhyme-end' && c.v1) {
+          if (!boin.endsWith(c.v1)) return false;
+        }
+        else if (c.type === 'replace' && c.v1 && c.v2) {
+          if (!reading.includes(c.v1)) return false;
+          const rep = reading.split(c.v1).join(c.v2);
+          if (!allReadings.has(rep)) return false;
+        }
+        else if (c.type === 'only' && c.v1) {
+          if (!(new RegExp(`^[${c.v1}]+$`).test(reading))) return false;
+        }
+        else if (c.type === 'excl' && c.v1) {
+          if (new RegExp(`[${c.v1}]`).test(reading)) return false;
+        }
       }
       return true;
     });
 
-    // 5. 表示
-    log(`表示処理中: ${filtered.length} 件`);
     status.innerText = filtered.length + " 件ヒットしました。";
     tbody.innerHTML = filtered.map(r => `
       <tr>
@@ -183,12 +233,10 @@ async function doSearch() {
         <td>${r[1]}</td>
         <td>${r[2]}</td>
       </tr>`).join("");
-    log("検索完了。");
 
   } catch (err) {
-    log(`致命的エラー: ${err.message}`);
-    console.error(err);
-    status.innerText = "エラー: データの読み込みに失敗しました。詳細はログを確認。";
+    log("エラー: " + err.message);
+    status.innerText = "エラーが発生しました。";
   } finally {
     btn.disabled = false;
   }
