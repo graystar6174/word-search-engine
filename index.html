@@ -8,42 +8,41 @@
     :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; }
     .container { max-width: 1000px; margin: 0 auto; }
-    .search-panel { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
     
-    /* 基本条件のグリッド */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+    /* 基本条件：崩れないように固定幅のグリッド */
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
-    label { font-size: 0.8rem; color: #888; margin-bottom: 3px; }
+    label { font-size: 0.8rem; color: #888; margin-bottom: 2px; }
     
-    /* 追加条件のリストエリア */
-    #dynamic-fields { margin-bottom: 15px; }
-    .cond-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; }
+    /* 追加条件リスト：余白を詰める */
+    #dynamic-fields { margin-bottom: 10px; }
+    .cond-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.95rem; }
     .cond-row:last-child { border-bottom: none; }
-    .cond-label { font-size: 0.9rem; font-weight: bold; color: var(--primary); min-width: 80px; }
     
-    input, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; }
-    input[type="number"] { width: 60px; }
-    .input-text { flex-grow: 1; min-width: 100px; }
+    input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
+    input[type="number"] { width: 50px; }
+    .input-short { width: 60px; }
+    .input-rhyme { width: 80px; } /* 韻の入力欄を短く */
 
-    /* 削除ボタン */
-    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold; margin-left: auto; }
+    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 14px; }
     .btn-remove:hover { background: #ff5e5e; color: white; }
 
-    .button-area { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+    .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
     .btn-search:disabled { background: #ccc; }
-    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; }
     
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-    th { background: #eef7fe; padding: 12px; border-bottom: 2px solid var(--border); text-align: left; }
-    td { padding: 12px; border-bottom: 1px solid #eee; }
-    .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; cursor: pointer; }
-    #debug-console { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; margin-top: 20px; font-size: 12px; max-height: 200px; overflow-y: auto; display: none; }
+    th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.9rem; }
+    td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
+    #debug-console { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; margin-top: 20px; font-size: 11px; max-height: 150px; overflow-y: auto; display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1 style="color:var(--primary); font-weight:normal; border-bottom: 1px solid var(--border); padding-bottom: 10px;">言葉の検索エンジン</h1>
+    <h1 style="color:var(--primary); font-weight:normal; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">言葉の検索エンジン</h1>
     
     <div class="search-panel">
       <div class="grid">
@@ -72,7 +71,7 @@
       </div>
     </div>
     
-    <p id="status">条件を入力して「検索を実行」を押してください。</p>
+    <p id="status">条件を入力してください。</p>
     <div id="debug-console"></div>
 
     <table>
@@ -92,7 +91,6 @@ function log(msg) {
   debugBox.appendChild(line);
 }
 
-// 動的フィールドの管理
 function addNewField(sel) {
   const v = sel.value; if(!v) return;
   const container = document.getElementById('dynamic-fields');
@@ -101,54 +99,62 @@ function addNewField(sel) {
   row.dataset.type = v;
   
   let content = '';
-  if(v==='n-pos') content = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:40px">`;
-  if(v==='contains-n') content = `<input type="text" class="val1" style="width:40px"> を <input type="number" class="val2"> 回含む`;
-  if(v==='all-in') content = `<span class="cond-label">全て含む</span> <input type="text" class="val1 input-text">`;
-  if(v==='seq') content = `<span class="cond-label">並び順</span> <input type="text" class="val1 input-text">`;
-  if(v==='rhyme-full') content = `<span class="cond-label">韻(完全)</span> <input type="text" class="val1 input-text">`;
-  if(v==='rhyme-end') content = `<span class="cond-label">脚韻</span> <input type="text" class="val1 input-text">`;
-  if(v==='replace') content = `<input type="text" class="val1" style="width:60px"> → <input type="text" class="val2" style="width:60px"> に置換可能`;
-  if(v==='only') content = `<span class="cond-label">文字のみ</span> <input type="text" class="val1 input-text">`;
-  if(v==='excl') content = `<span class="cond-label">除外文字</span> <input type="text" class="val1 input-text">`;
+  if(v==='n-pos') content = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
+  if(v==='contains-n') content = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
+  if(v==='all-in') content = `全て含む：<input type="text" class="val1 input-short">`;
+  if(v==='seq') content = `並び順：<input type="text" class="val1 input-short">`;
+  if(v==='rhyme-full') content = `韻(完全)：<input type="text" class="val1 input-rhyme">`;
+  if(v==='rhyme-end') content = `脚韻：<input type="text" class="val1 input-rhyme">`;
+  if(v==='replace') content = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
+  if(v==='only') content = `文字のみ：<input type="text" class="val1 input-short">`;
+  if(v==='excl') content = `除外文字：<input type="text" class="val1 input-short">`;
 
   row.innerHTML = content + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
   container.appendChild(row);
 
-  // 韻の排他制御
-  if(v.startsWith('rhyme')) updateRhymeOptions();
-  
+  // 重要：選択後にリセットして2連続選択を可能にする
   sel.value = "";
+  updateRhymeOptions();
 }
 
 function removeField(btn) {
-  const row = btn.parentNode;
-  const type = row.dataset.type;
-  row.remove();
-  if(type.startsWith('rhyme')) updateRhymeOptions();
+  btn.parentNode.remove();
+  updateRhymeOptions();
 }
 
 function updateRhymeOptions() {
   const currentFields = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
   const select = document.getElementById('add-select');
-  const optFull = select.querySelector('option[value="rhyme-full"]');
-  const optEnd = select.querySelector('option[value="rhyme-end"]');
   
-  optFull.disabled = currentFields.includes('rhyme-end');
-  optEnd.disabled = currentFields.includes('rhyme-full');
+  // 韻関係の排他制御
+  select.querySelector('option[value="rhyme-full"]').disabled = currentFields.includes('rhyme-end') || currentFields.includes('rhyme-full');
+  select.querySelector('option[value="rhyme-end"]').disabled = currentFields.includes('rhyme-full') || currentFields.includes('rhyme-end');
 }
 
 async function doSearch() {
   const btn = document.querySelector(".btn-search");
   const status = document.getElementById("status");
   const tbody = document.getElementById("results");
+
+  // 条件チェック：何も入力されていない場合は中断
+  const baseLen = document.getElementById('base-len').value;
+  const baseStart = document.getElementById('base-start').value;
+  const baseEnd = document.getElementById('base-end').value;
+  const baseWild = document.getElementById('base-wild').value;
+  const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
+
+  if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
+    status.innerText = "検索条件を入力してください。";
+    tbody.innerHTML = "";
+    return;
+  }
   
   btn.disabled = true;
-  status.innerText = "データを読み込み中...";
+  status.innerText = "読み込み中...";
   debugBox.innerHTML = "";
   tbody.innerHTML = "";
 
   try {
-    log("検索開始...");
     const resIdx = await fetch(`${REPO_URL}/index.json`);
     const indexData = await resIdx.json();
 
@@ -161,82 +167,60 @@ async function doSearch() {
     const allData = chunkResults.flat();
     const allReadings = new Set(allData.map(r => String(r[1])));
 
-    // 条件の収集
-    const base = {
-      len: document.getElementById('base-len').value,
-      start: document.getElementById('base-start').value,
-      end: document.getElementById('base-end').value,
-      wild: document.getElementById('base-wild').value
-    };
-
-    const dynamicRows = Array.from(document.querySelectorAll('.cond-row')).map(row => ({
+    const conds = dynamicRows.map(row => ({
       type: row.dataset.type,
       v1: row.querySelector('.val1')?.value || "",
-      v2: row.querySelector('.val2')?.value || ""
+      v2: row.querySelector('.val2')?.value || "",
+      op: row.querySelector('.op')?.value || "eq"
     }));
 
-    // フィルタリング
     const filtered = allData.filter(row => {
       const [word, reading, note, length, boin] = row;
-
-      // 1. 基本条件 (AND)
-      if (base.len && length != base.len) return false;
-      if (base.start && !reading.startsWith(base.start)) return false;
-      if (base.end && !reading.endsWith(base.end)) return false;
-      if (base.wild) {
-        const reg = new RegExp("^" + base.wild.replace(/？|\?/g, ".") + "$");
+      if (baseLen && length != baseLen) return false;
+      if (baseStart && !reading.startsWith(baseStart)) return false;
+      if (baseEnd && !reading.endsWith(baseEnd)) return false;
+      if (baseWild) {
+        const reg = new RegExp("^" + baseWild.replace(/？|\?/g, ".") + "$");
         if (!reg.test(reading)) return false;
       }
 
-      // 2. 追加条件 (AND)
-      for (const c of dynamicRows) {
+      for (const c of conds) {
         if (c.type === 'n-pos' && c.v1 && c.v2) {
           if (reading[parseInt(c.v1) - 1] !== c.v2) return false;
         }
         else if (c.type === 'contains-n' && c.v1 && c.v2) {
-          if ((reading.split(c.v1).length - 1) != c.v2) return false;
+          const cnt = reading.split(c.v1).length - 1;
+          const target = parseInt(c.v2);
+          if (c.op === 'eq' && cnt !== target) return false;
+          if (c.op === 'ge' && cnt < target) return false;
+          if (c.op === 'le' && cnt > target) return false;
         }
         else if (c.type === 'all-in' && c.v1) {
           for (let ch of c.v1) {
             if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false;
           }
         }
-        else if (c.type === 'seq' && c.v1) {
-          if (!reading.includes(c.v1)) return false;
-        }
-        else if (c.type === 'rhyme-full' && c.v1) {
-          if (boin !== c.v1) return false;
-        }
-        else if (c.type === 'rhyme-end' && c.v1) {
-          if (!boin.endsWith(c.v1)) return false;
-        }
+        else if (c.type === 'seq' && c.v1 && !reading.includes(c.v1)) return false;
+        else if (c.type === 'rhyme-full' && c.v1 && boin !== c.v1) return false;
+        else if (c.type === 'rhyme-end' && c.v1 && !boin.endsWith(c.v1)) return false;
         else if (c.type === 'replace' && c.v1 && c.v2) {
           if (!reading.includes(c.v1)) return false;
           const rep = reading.split(c.v1).join(c.v2);
           if (!allReadings.has(rep)) return false;
         }
-        else if (c.type === 'only' && c.v1) {
-          if (!(new RegExp(`^[${c.v1}]+$`).test(reading))) return false;
-        }
-        else if (c.type === 'excl' && c.v1) {
-          if (new RegExp(`[${c.v1}]`).test(reading)) return false;
-        }
+        else if (c.type === 'only' && c.v1 && !(new RegExp(`^[${c.v1}]+$`).test(reading))) return false;
+        else if (c.type === 'excl' && c.v1 && (new RegExp(`[${c.v1}]`).test(reading))) return false;
       }
       return true;
     });
 
-    status.innerText = filtered.length + " 件ヒットしました。";
+    status.innerText = filtered.length + " 件ヒット";
     tbody.innerHTML = filtered.map(r => `
-      <tr>
-        <td>${r[3]}</td>
-        <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
-        <td>${r[1]}</td>
-        <td>${r[2]}</td>
-      </tr>`).join("");
+      <tr><td>${r[3]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td>${r[2]}</td></tr>
+    `).join("");
 
   } catch (err) {
-    log("エラー: " + err.message);
-    status.innerText = "エラーが発生しました。";
+    status.innerText = "読み込みエラー";
   } finally {
     btn.disabled = false;
   }
