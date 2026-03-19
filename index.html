@@ -6,8 +6,8 @@
   <title>言葉の検索エンジン</title>
   <style>
     :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
-    body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-    .container { max-width: 1000px; margin: 0 auto; }
+    body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    .container { max-width: 1000px; margin: 0 auto; flex: 1; width: 100%; }
     .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
     
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
@@ -21,8 +21,7 @@
     .input-group { display: flex; flex-direction: column; }
     label { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
     
-    #base-len { width: 50px; }
-    #base-start, #base-end { width: 50px; } 
+    #base-len, #base-start, #base-end { width: 50px; } 
     #base-wild { width: 120px; }
 
     #dynamic-fields { margin-bottom: 10px; }
@@ -39,18 +38,26 @@
     .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; position: relative; }
     .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-    /* カスタムプルダウンのスタイル */
+    /* カスタムプルダウン（動的表示位置） */
     .custom-select-container { position: relative; }
-    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; display: inline-block; }
-    .custom-options { display: none; position: absolute; top: 110%; left: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 100; min-width: 200px; padding: 5px 0; }
-    .custom-options div { padding: 8px 15px; cursor: pointer; font-size: 0.9rem; color: var(--text); }
+    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; display: inline-block; transition: background 0.2s; }
+    .custom-select-trigger:hover { background: #f0f7ff; }
+    .custom-options { display: none; position: absolute; left: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; padding: 5px 0; }
+    .custom-options div { padding: 10px 15px; cursor: pointer; font-size: 0.9rem; color: var(--text); border-bottom: 1px solid #f9f9f9; }
+    .custom-options div:last-child { border-bottom: none; }
     .custom-options div:hover { background: #f0f7ff; color: var(--primary); }
     .custom-options.show { display: block; }
+    /* 上方向に表示する際のアニメーション用クラス */
+    .drop-up { bottom: 120%; top: auto; }
+    .drop-down { top: 110%; bottom: auto; }
 
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
     th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
     td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
+
+    /* 最下部の説明スペース */
+    .description-footer { margin-top: 40px; padding: 30px 20px; background: #fff; border-top: 1px solid var(--border); color: #777; font-size: 0.85rem; line-height: 1.6; }
   </style>
 </head>
 <body>
@@ -75,9 +82,8 @@
 
         <div class="button-area">
           <div class="custom-select-container">
-            <div class="custom-select-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
-            <div class="custom-options" id="custom-options">
-              </div>
+            <div class="custom-select-trigger" id="dropdown-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
+            <div class="custom-options" id="custom-options"></div>
           </div>
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
         </div>
@@ -92,6 +98,18 @@
       <tbody id="results"></tbody>
     </table>
   </div>
+
+  <footer class="description-footer">
+    <div style="max-width: 1000px; margin: 0 auto;">
+      <h3 style="color: var(--primary); margin-top: 0;">ご利用方法 / 備考</h3>
+      <p>ここに検索エンジンの使い方の詳細や、データの出典、更新情報などを記載できます。</p>
+      <ul>
+        <li><b>n文字目の指定:</b> 特定の位置にある文字を固定して検索します。</li>
+        <li><b>入力欄の並びを含む:</b> 入力した文字列がそのままの順序で含まれる単語を検索します。</li>
+        <li><b>置換して成り立つか:</b> 指定した文字を入れ替えても辞書に存在する単語をリストアップします。</li>
+      </ul>
+    </div>
+  </footer>
 
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
@@ -110,7 +128,6 @@ const COND_MASTER = [
 
 window.onload = updateDropdown;
 
-// メニューの外をクリックしたら閉じる
 window.onclick = function(e) {
   if (!e.target.matches('.custom-select-trigger')) {
     document.getElementById('custom-options').classList.remove('show');
@@ -119,7 +136,24 @@ window.onclick = function(e) {
 
 function toggleDropdown(e) {
   e.stopPropagation();
-  document.getElementById('custom-options').classList.toggle('show');
+  const optionsDiv = document.getElementById('custom-options');
+  const trigger = document.getElementById('dropdown-trigger');
+  
+  // 表示位置の計算
+  const rect = trigger.getBoundingClientRect();
+  const windowHeight = window.innerHeight;
+  const spaceBelow = windowHeight - rect.bottom;
+  
+  // 下に250px以上のスペースがなければ上方向に展開
+  if (spaceBelow < 250) {
+    optionsDiv.classList.remove('drop-down');
+    optionsDiv.classList.add('drop-up');
+  } else {
+    optionsDiv.classList.remove('drop-up');
+    optionsDiv.classList.add('drop-down');
+  }
+
+  optionsDiv.classList.toggle('show');
 }
 
 function togglePanel() {
@@ -148,8 +182,7 @@ function updateSummary() {
     if(type==='n-pos') items.push(`${v1}文字目：${v2}`);
     if(type==='contains-n') {
       const op = row.querySelector('.op');
-      const opText = op.options[op.selectedIndex].text;
-      items.push(`「${v1}」${v2}回(${opText})`);
+      items.push(`「${v1}」${v2}回(${op.options[op.selectedIndex].text})`);
     }
     if(type==='all-in') items.push(`全含：${v1}`);
     if(type==='seq') items.push(`並び：${v1}`);
@@ -209,7 +242,7 @@ function updateDropdown() {
     if(!shouldHide) {
       const opt = document.createElement('div');
       opt.textContent = m.text;
-      opt.onclick = () => addNewField(m.val); // クリックイベントを直接付与
+      opt.onclick = () => addNewField(m.val);
       optionsDiv.appendChild(opt);
     }
   });
@@ -236,10 +269,7 @@ async function doSearch() {
   try {
     const resIdx = await fetch(`${REPO_URL}/index.json`);
     const indexData = await resIdx.json();
-    const promises = indexData.files.map(file => {
-      const safePath = file.split('/').map(p => encodeURIComponent(p)).join('/');
-      return fetch(`${REPO_URL}/${safePath}`).then(r => r.ok ? r.json() : []);
-    });
+    const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file.split('/').map(p => encodeURIComponent(p)).join('/')}`).then(r => r.ok ? r.json() : []));
 
     const chunkResults = await Promise.all(promises);
     const allData = chunkResults.flat();
@@ -262,9 +292,7 @@ async function doSearch() {
         if (!reg.test(reading)) return false;
       }
       for (const c of conds) {
-        if (c.type === 'n-pos' && c.v1 && c.v2) {
-          if (reading[parseInt(c.v1) - 1] !== c.v2) return false;
-        }
+        if (c.type === 'n-pos' && c.v1 && c.v2) { if (reading[parseInt(c.v1) - 1] !== c.v2) return false; }
         else if (c.type === 'contains-n' && c.v1 && c.v2) {
           const cnt = reading.split(c.v1).length - 1;
           const target = parseInt(c.v2);
@@ -272,9 +300,7 @@ async function doSearch() {
           if (c.op === 'ge' && cnt < target) return false;
           if (c.op === 'le' && cnt > target) return false;
         }
-        else if (c.type === 'all-in' && c.v1) {
-          for (let ch of c.v1) if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false;
-        }
+        else if (c.type === 'all-in' && c.v1) { for (let ch of c.v1) if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false; }
         else if (c.type === 'seq' && c.v1 && !reading.includes(c.v1)) return false;
         else if (c.type === 'rhyme-full' && c.v1 && boin !== c.v1) return false;
         else if (c.type === 'rhyme-end' && c.v1 && !boin.endsWith(c.v1)) return false;
