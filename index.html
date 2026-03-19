@@ -8,33 +8,45 @@
     :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; }
     .container { max-width: 1000px; margin: 0 auto; }
-    .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
     
-    /* 基本条件：崩れないように固定幅のグリッド */
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+    /* パネル制御ヘッダー */
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+    .panel-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); }
+    .toggle-btn { background: var(--primary); color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; line-height: 20px; }
+    
+    /* 折り畳みサマリー表示 */
+    #search-summary { font-size: 0.85rem; color: #666; cursor: pointer; display: none; padding: 5px 0; line-height: 1.4; word-break: break-all; }
+
+    /* 基本条件：左詰めレイアウト */
+    .grid { display: flex; flex-wrap: wrap; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
     label { font-size: 0.8rem; color: #888; margin-bottom: 2px; }
     
-    /* 追加条件リスト：余白を詰める */
+    /* 基本入力欄の幅調整 */
+    #base-len { width: 50px; }
+    #base-start, #base-end { width: 60px; }
+    #base-wild { width: 120px; }
+
+    /* 追加条件リスト */
     #dynamic-fields { margin-bottom: 10px; }
-    .cond-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.95rem; }
-    .cond-row:last-child { border-bottom: none; }
+    .cond-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
     
     input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
     input[type="number"] { width: 50px; }
     .input-short { width: 60px; }
-    .input-rhyme { width: 80px; } /* 韻の入力欄を短く */
+    /* 韻の入力欄サイズ指定 */
+    .input-rhyme-end { width: 120px; } /* 80pxの1.5倍 */
+    .input-rhyme-full { width: 160px; } /* 80pxの2倍 */
 
-    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 14px; }
-    .btn-remove:hover { background: #ff5e5e; color: white; }
+    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
     .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
-    .btn-search:disabled { background: #ccc; }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
     .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; }
     
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-    th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.9rem; }
+    th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
     td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
     #debug-console { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; margin-top: 20px; font-size: 11px; max-height: 150px; overflow-y: auto; display: none; }
@@ -44,31 +56,40 @@
   <div class="container">
     <h1 style="color:var(--primary); font-weight:normal; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">言葉の検索エンジン</h1>
     
-    <div class="search-panel">
-      <div class="grid">
-        <div class="input-group"><label>文字数</label><input type="number" id="base-len"></div>
-        <div class="input-group"><label>開始文字</label><input type="text" id="base-start"></div>
-        <div class="input-group"><label>終了文字</label><input type="text" id="base-end"></div>
-        <div class="input-group"><label>？検索</label><input type="text" id="base-wild"></div>
+    <div class="search-panel" id="panel">
+      <div class="panel-header">
+        <span class="panel-title">検索条件設定</span>
+        <button class="toggle-btn" id="toggle-btn" onclick="togglePanel()">−</button>
       </div>
 
-      <div id="dynamic-fields"></div>
+      <div id="panel-content">
+        <div class="grid">
+          <div class="input-group"><label>文字数</label><input type="number" id="base-len"></div>
+          <div class="input-group"><label>開始</label><input type="text" id="base-start"></div>
+          <div class="input-group"><label>終了</label><input type="text" id="base-end"></div>
+          <div class="input-group"><label>？検索</label><input type="text" id="base-wild"></div>
+        </div>
 
-      <div class="button-area">
-        <select class="add-cond" id="add-select" onchange="addNewField(this)">
-          <option value="">＋ 条件を追加</option>
-          <option value="n-pos">n文字目の指定</option>
-          <option value="contains-n">特定の文字をn回含む</option>
-          <option value="all-in">全て含む</option>
-          <option value="seq">並び順を含む</option>
-          <option value="rhyme-full">韻（完全一致）</option>
-          <option value="rhyme-end">韻（脚韻）</option>
-          <option value="replace">置換して成り立つか</option>
-          <option value="only">構成文字のみ</option>
-          <option value="excl">除外文字</option>
-        </select>
-        <button class="btn-search" onclick="doSearch()">検索を実行</button>
+        <div id="dynamic-fields"></div>
+
+        <div class="button-area">
+          <select class="add-cond" id="add-select" onchange="addNewField(this)">
+            <option value="" disabled selected hidden>＋ 条件を追加</option>
+            <option value="n-pos">n文字目の指定</option>
+            <option value="contains-n">特定の文字をn回含む</option>
+            <option value="all-in">全て含む</option>
+            <option value="seq">並び順を含む</option>
+            <option value="rhyme-full">韻（完全一致）</option>
+            <option value="rhyme-end">韻（脚韻）</option>
+            <option value="replace">置換して成り立つか</option>
+            <option value="only">構成文字のみ</option>
+            <option value="excl">除外文字</option>
+          </select>
+          <button class="btn-search" onclick="doSearch()">検索を実行</button>
+        </div>
       </div>
+      
+      <div id="search-summary" onclick="togglePanel()"></div>
     </div>
     
     <p id="status">条件を入力してください。</p>
@@ -82,13 +103,52 @@
 
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
-const debugBox = document.getElementById("debug-console");
 
-function log(msg) {
-  debugBox.style.display = "block";
-  const line = document.createElement("div");
-  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  debugBox.appendChild(line);
+function togglePanel() {
+  const content = document.getElementById('panel-content');
+  const summary = document.getElementById('search-summary');
+  const btn = document.getElementById('toggle-btn');
+  
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    summary.style.display = 'none';
+    btn.innerText = '−';
+  } else {
+    content.style.display = 'none';
+    updateSummary();
+    summary.style.display = 'block';
+    btn.innerText = '＋';
+  }
+}
+
+function updateSummary() {
+  const s = [];
+  const bLen = document.getElementById('base-len').value;
+  const bStart = document.getElementById('base-start').value;
+  const bEnd = document.getElementById('base-end').value;
+  const bWild = document.getElementById('base-wild').value;
+  
+  if(bLen) s.push(`${bLen}文字`);
+  if(bStart) s.push(`${bStart}開始`);
+  if(bEnd) s.push(`${bEnd}終了`);
+  if(bWild) s.push(`?：${bWild}`);
+
+  document.querySelectorAll('.cond-row').forEach(row => {
+    const type = row.dataset.type;
+    const v1 = row.querySelector('.val1')?.value;
+    const v2 = row.querySelector('.val2')?.value;
+    if(type==='n-pos') s.push(`${v1}文字目[${v2}]`);
+    if(type==='contains-n') s.push(`[${v1}]${v2}回`);
+    if(type==='all-in') s.push(`含：${v1}`);
+    if(type==='seq') s.push(`順：${v1}`);
+    if(type==='rhyme-full') s.push(`全韻：${v1}`);
+    if(type==='rhyme-end') s.push(`脚韻：${v1}`);
+    if(type==='replace') s.push(`${v1}→${v2}`);
+    if(type==='only') s.push(`のみ：${v1}`);
+    if(type==='excl') s.push(`除：${v1}`);
+  });
+  
+  document.getElementById('search-summary').innerText = s.length > 0 ? s.join(', ') : "条件なし";
 }
 
 function addNewField(sel) {
@@ -98,66 +158,66 @@ function addNewField(sel) {
   row.className = 'cond-row';
   row.dataset.type = v;
   
-  let content = '';
-  if(v==='n-pos') content = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
-  if(v==='contains-n') content = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
-  if(v==='all-in') content = `全て含む：<input type="text" class="val1 input-short">`;
-  if(v==='seq') content = `並び順：<input type="text" class="val1 input-short">`;
-  if(v==='rhyme-full') content = `韻(完全)：<input type="text" class="val1 input-rhyme">`;
-  if(v==='rhyme-end') content = `脚韻：<input type="text" class="val1 input-rhyme">`;
-  if(v==='replace') content = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
-  if(v==='only') content = `文字のみ：<input type="text" class="val1 input-short">`;
-  if(v==='excl') content = `除外文字：<input type="text" class="val1 input-short">`;
+  let h = '';
+  if(v==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
+  if(v==='contains-n') h = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
+  if(v==='all-in') h = `全て含む：<input type="text" class="val1 input-short">`;
+  if(v==='seq') h = `並び順：<input type="text" class="val1 input-short">`;
+  if(v==='rhyme-full') h = `韻(完全)：<input type="text" class="val1 input-rhyme-full">`;
+  if(v==='rhyme-end') h = `脚韻：<input type="text" class="val1 input-rhyme-end">`;
+  if(v==='replace') h = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
+  if(v==='only') h = `文字のみ：<input type="text" class="val1 input-short">`;
+  if(v==='excl') h = `除外文字：<input type="text" class="val1 input-short">`;
 
-  row.innerHTML = content + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
+  row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
   container.appendChild(row);
 
-  // 重要：選択後にリセットして2連続選択を可能にする
-  sel.value = "";
-  updateRhymeOptions();
+  sel.value = ""; // 選択リセット
+  updateDropdown();
 }
 
 function removeField(btn) {
   btn.parentNode.remove();
-  updateRhymeOptions();
+  updateDropdown();
 }
 
-function updateRhymeOptions() {
-  const currentFields = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
-  const select = document.getElementById('add-select');
+function updateDropdown() {
+  const current = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
+  const sel = document.getElementById('add-select');
+  const multi = ['n-pos', 'contains-n', 'replace'];
   
-  // 韻関係の排他制御
-  select.querySelector('option[value="rhyme-full"]').disabled = currentFields.includes('rhyme-end') || currentFields.includes('rhyme-full');
-  select.querySelector('option[value="rhyme-end"]').disabled = currentFields.includes('rhyme-full') || currentFields.includes('rhyme-end');
+  Array.from(sel.options).forEach(opt => {
+    if(!opt.value) return;
+    if(!multi.includes(opt.value) && current.includes(opt.value)){
+      opt.style.display = 'none'; // リストから消去
+    } else {
+      opt.style.display = 'block';
+    }
+  });
 }
 
 async function doSearch() {
-  const btn = document.querySelector(".btn-search");
   const status = document.getElementById("status");
   const tbody = document.getElementById("results");
 
-  // 条件チェック：何も入力されていない場合は中断
-  const baseLen = document.getElementById('base-len').value;
-  const baseStart = document.getElementById('base-start').value;
-  const baseEnd = document.getElementById('base-end').value;
-  const baseWild = document.getElementById('base-wild').value;
+  const base = {
+    len: document.getElementById('base-len').value,
+    start: document.getElementById('base-start').value,
+    end: document.getElementById('base-end').value,
+    wild: document.getElementById('base-wild').value
+  };
   const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
 
-  if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
-    status.innerText = "検索条件を入力してください。";
-    tbody.innerHTML = "";
+  if (!base.len && !base.start && !base.end && !base.wild && dynamicRows.length === 0) {
+    status.innerText = "条件を入力してください。";
     return;
   }
   
-  btn.disabled = true;
   status.innerText = "読み込み中...";
-  debugBox.innerHTML = "";
-  tbody.innerHTML = "";
 
   try {
     const resIdx = await fetch(`${REPO_URL}/index.json`);
     const indexData = await resIdx.json();
-
     const promises = indexData.files.map(file => {
       const safePath = file.split('/').map(p => encodeURIComponent(p)).join('/');
       return fetch(`${REPO_URL}/${safePath}`).then(r => r.ok ? r.json() : []);
@@ -176,11 +236,11 @@ async function doSearch() {
 
     const filtered = allData.filter(row => {
       const [word, reading, note, length, boin] = row;
-      if (baseLen && length != baseLen) return false;
-      if (baseStart && !reading.startsWith(baseStart)) return false;
-      if (baseEnd && !reading.endsWith(baseEnd)) return false;
-      if (baseWild) {
-        const reg = new RegExp("^" + baseWild.replace(/？|\?/g, ".") + "$");
+      if (base.len && length != base.len) return false;
+      if (base.start && !reading.startsWith(base.start)) return false;
+      if (base.end && !reading.endsWith(base.end)) return false;
+      if (base.wild) {
+        const reg = new RegExp("^" + base.wild.replace(/？|\?/g, ".") + "$");
         if (!reg.test(reading)) return false;
       }
 
@@ -196,9 +256,7 @@ async function doSearch() {
           if (c.op === 'le' && cnt > target) return false;
         }
         else if (c.type === 'all-in' && c.v1) {
-          for (let ch of c.v1) {
-            if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false;
-          }
+          for (let ch of c.v1) if ((reading.split(ch).length - 1) < (c.v1.split(ch).length - 1)) return false;
         }
         else if (c.type === 'seq' && c.v1 && !reading.includes(c.v1)) return false;
         else if (c.type === 'rhyme-full' && c.v1 && boin !== c.v1) return false;
@@ -215,14 +273,9 @@ async function doSearch() {
     });
 
     status.innerText = filtered.length + " 件ヒット";
-    tbody.innerHTML = filtered.map(r => `
-      <tr><td>${r[3]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td>${r[2]}</td></tr>
-    `).join("");
-
+    tbody.innerHTML = filtered.map(r => `<tr><td>${r[3]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
   } catch (err) {
-    status.innerText = "読み込みエラー";
-  } finally {
-    btn.disabled = false;
+    status.innerText = "エラー発生";
   }
 }
 </script>
