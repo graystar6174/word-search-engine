@@ -14,16 +14,17 @@
     .panel-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); }
     .toggle-btn { background: var(--primary); color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; line-height: 20px; }
     
-    /* 折り畳みサマリー表示（バッジ形式でわかりやすく） */
+    /* 折り畳みサマリー表示（バッジ形式） */
     #search-summary { display: none; cursor: pointer; padding: 10px; background: #f0f7ff; border-radius: 8px; border: 1px dashed var(--primary); }
     .summary-item { display: inline-block; background: white; border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.85rem; color: #555; }
 
+    /* 基本条件：左詰めレイアウト */
     .grid { display: flex; flex-wrap: wrap; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
     label { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
     
     #base-len { width: 50px; }
-    #base-start, #base-end { width: 50px; } /* 開始・終了も小さく */
+    #base-start, #base-end { width: 50px; } 
     #base-wild { width: 120px; }
 
     #dynamic-fields { margin-bottom: 10px; }
@@ -32,7 +33,6 @@
     input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
     input[type="number"] { width: 50px; }
     .input-short { width: 50px; }
-    /* 韻の入力欄サイズ指定 */
     .input-rhyme-end { width: 120px; } 
     .input-rhyme-full { width: 160px; } 
 
@@ -40,7 +40,7 @@
 
     .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; }
     .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+    .add-cond { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; }
     
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
     th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
@@ -70,16 +70,6 @@
 
         <div class="button-area">
           <select class="add-cond" id="add-select" onchange="addNewField(this)">
-            <option value="" disabled selected hidden>＋ 条件を追加</option>
-            <option value="n-pos">n文字目の指定</option>
-            <option value="contains-n">特定の文字をn回含む</option>
-            <option value="all-in">全て含む</option>
-            <option value="seq">並び順を含む</option>
-            <option value="rhyme-full">韻（完全一致）</option>
-            <option value="rhyme-end">韻（脚韻）</option>
-            <option value="replace">置換して成り立つか</option>
-            <option value="only">構成文字のみ</option>
-            <option value="excl">除外文字</option>
           </select>
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
         </div>
@@ -99,20 +89,30 @@
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 
+// プルダウンの全マスターデータ
+const COND_MASTER = [
+  { val: "n-pos", text: "n文字目の指定", multi: true },
+  { val: "contains-n", text: "特定の文字をn回含む", multi: true },
+  { val: "seq", text: "の並びを含む", multi: true }, // UI変更 & 無制限化
+  { val: "replace", text: "置換して成り立つか", multi: true },
+  { val: "all-in", text: "全て含む", multi: false },
+  { val: "rhyme-full", text: "韻（完全一致）", multi: false, group: "rhyme" },
+  { val: "rhyme-end", text: "韻（脚韻）", multi: false, group: "rhyme" },
+  { val: "only", text: "構成文字のみ", multi: false },
+  { val: "excl", text: "除外文字", multi: false }
+];
+
+// 初期化：最初にプルダウンを生成
+window.onload = updateDropdown;
+
 function togglePanel() {
   const content = document.getElementById('panel-content');
   const summary = document.getElementById('search-summary');
   const btn = document.getElementById('toggle-btn');
-  
   if (content.style.display === 'none') {
-    content.style.display = 'block';
-    summary.style.display = 'none';
-    btn.innerText = '−';
+    content.style.display = 'block'; summary.style.display = 'none'; btn.innerText = '−';
   } else {
-    content.style.display = 'none';
-    updateSummary();
-    summary.style.display = 'block';
-    btn.innerText = '＋';
+    content.style.display = 'none'; updateSummary(); summary.style.display = 'block'; btn.innerText = '＋';
   }
 }
 
@@ -122,7 +122,6 @@ function updateSummary() {
   const bStart = document.getElementById('base-start').value;
   const bEnd = document.getElementById('base-end').value;
   const bWild = document.getElementById('base-wild').value;
-  
   if(bLen) items.push(`${bLen}文字`);
   if(bStart) items.push(`${bStart}～`);
   if(bEnd) items.push(`～${bEnd}`);
@@ -163,7 +162,7 @@ function addNewField(sel) {
   if(v==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2 input-short">`;
   if(v==='contains-n') h = `<input type="text" class="val1 input-short"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
   if(v==='all-in') h = `全て含む：<input type="text" class="val1 input-short">`;
-  if(v==='seq') h = `並び順：<input type="text" class="val1 input-short">`;
+  if(v==='seq') h = `<input type="text" class="val1 input-short"> の並びを含む`; // UI変更
   if(v==='rhyme-full') h = `韻(完全)：<input type="text" class="val1 input-rhyme-full">`;
   if(v==='rhyme-end') h = `脚韻：<input type="text" class="val1 input-rhyme-end">`;
   if(v==='replace') h = `<input type="text" class="val1 input-short"> → <input type="text" class="val2 input-short"> に置換可能`;
@@ -173,8 +172,7 @@ function addNewField(sel) {
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
   container.appendChild(row);
 
-  // 2連続選択を可能にするためのリセット処理
-  sel.selectedIndex = 0; 
+  // 重要：追加直後にプルダウンを再構築して初期状態に戻す
   updateDropdown();
 }
 
@@ -184,32 +182,30 @@ function removeField(btn) {
 }
 
 function updateDropdown() {
-  const current = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
   const sel = document.getElementById('add-select');
-  
-  // 無制限に選べる項目
-  const multi = ['n-pos', 'contains-n', 'replace'];
-  // 韻の排他ペア
-  const rhymeGroup = ['rhyme-full', 'rhyme-end'];
-  const hasRhyme = current.some(t => rhymeGroup.includes(t));
+  const current = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
+  const hasRhyme = current.some(t => t === 'rhyme-full' || t === 'rhyme-end');
 
-  Array.from(sel.options).forEach(opt => {
-    if(!opt.value) return;
-    const val = opt.value;
-    
+  // HTMLを一旦空にして再構築することで、2連続選択を可能にする
+  sel.innerHTML = '<option value="" disabled selected hidden>＋ 条件を追加</option>';
+
+  COND_MASTER.forEach(m => {
     let shouldHide = false;
-    // 韻の排他制御：どちらか一つあれば両方消す
-    if(rhymeGroup.includes(val) && hasRhyme) {
-      shouldHide = true;
-    } 
-    // 1回限定の制御：既に存在すれば消す
-    else if(!multi.includes(val) && current.includes(val)) {
-      shouldHide = true;
-    }
+    // 韻グループの排他制御
+    if(m.group === 'rhyme' && hasRhyme) shouldHide = true;
+    // 1回限定項目の制御
+    if(!m.multi && current.includes(m.val)) shouldHide = true;
 
-    opt.style.display = shouldHide ? 'none' : 'block';
-    opt.disabled = shouldHide;
+    if(!shouldHide) {
+      const opt = document.createElement('option');
+      opt.value = m.val;
+      opt.textContent = m.text;
+      sel.appendChild(opt);
+    }
   });
+  
+  // インデックスを初期状態(0)に強制リセット
+  sel.selectedIndex = 0;
 }
 
 async function doSearch() {
@@ -225,11 +221,11 @@ async function doSearch() {
 
   if (!base.len && !base.start && !base.end && !base.wild && dynamicRows.length === 0) {
     status.innerText = "条件を入力してください。";
+    tbody.innerHTML = "";
     return;
   }
   
   status.innerText = "読み込み中...";
-
   try {
     const resIdx = await fetch(`${REPO_URL}/index.json`);
     const indexData = await resIdx.json();
