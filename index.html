@@ -10,34 +10,31 @@
     .container { max-width: 1000px; margin: 0 auto; }
     .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
     
-    /* パネル制御ヘッダー */
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
     .panel-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); }
     .toggle-btn { background: var(--primary); color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; line-height: 20px; }
     
-    /* 折り畳みサマリー表示 */
-    #search-summary { font-size: 0.85rem; color: #666; cursor: pointer; display: none; padding: 5px 0; line-height: 1.4; word-break: break-all; }
+    /* 折り畳みサマリー表示（バッジ形式でわかりやすく） */
+    #search-summary { display: none; cursor: pointer; padding: 10px; background: #f0f7ff; border-radius: 8px; border: 1px dashed var(--primary); }
+    .summary-item { display: inline-block; background: white; border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.85rem; color: #555; }
 
-    /* 基本条件：左詰めレイアウト */
-    .grid { display: flex; flex-wrap: wrap; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
-    label { font-size: 0.8rem; color: #888; margin-bottom: 2px; }
+    label { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
     
-    /* 基本入力欄の幅調整 */
     #base-len { width: 50px; }
-    #base-start, #base-end { width: 60px; }
+    #base-start, #base-end { width: 50px; } /* 開始・終了も小さく */
     #base-wild { width: 120px; }
 
-    /* 追加条件リスト */
     #dynamic-fields { margin-bottom: 10px; }
-    .cond-row { display: flex; align-items: center; padding: 5px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
+    .cond-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
     
     input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
     input[type="number"] { width: 50px; }
-    .input-short { width: 60px; }
+    .input-short { width: 50px; }
     /* 韻の入力欄サイズ指定 */
-    .input-rhyme-end { width: 120px; } /* 80pxの1.5倍 */
-    .input-rhyme-full { width: 160px; } /* 80pxの2倍 */
+    .input-rhyme-end { width: 120px; } 
+    .input-rhyme-full { width: 160px; } 
 
     .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
@@ -49,7 +46,6 @@
     th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
     td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
-    #debug-console { background: #333; color: #0f0; font-family: monospace; padding: 10px; border-radius: 8px; margin-top: 20px; font-size: 11px; max-height: 150px; overflow-y: auto; display: none; }
   </style>
 </head>
 <body>
@@ -93,7 +89,6 @@
     </div>
     
     <p id="status">条件を入力してください。</p>
-    <div id="debug-console"></div>
 
     <table>
       <thead><tr><th style="width:10%">数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
@@ -122,33 +117,39 @@ function togglePanel() {
 }
 
 function updateSummary() {
-  const s = [];
+  const items = [];
   const bLen = document.getElementById('base-len').value;
   const bStart = document.getElementById('base-start').value;
   const bEnd = document.getElementById('base-end').value;
   const bWild = document.getElementById('base-wild').value;
   
-  if(bLen) s.push(`${bLen}文字`);
-  if(bStart) s.push(`${bStart}開始`);
-  if(bEnd) s.push(`${bEnd}終了`);
-  if(bWild) s.push(`?：${bWild}`);
+  if(bLen) items.push(`${bLen}文字`);
+  if(bStart) items.push(`${bStart}～`);
+  if(bEnd) items.push(`～${bEnd}`);
+  if(bWild) items.push(`？：${bWild}`);
 
   document.querySelectorAll('.cond-row').forEach(row => {
     const type = row.dataset.type;
-    const v1 = row.querySelector('.val1')?.value;
-    const v2 = row.querySelector('.val2')?.value;
-    if(type==='n-pos') s.push(`${v1}文字目[${v2}]`);
-    if(type==='contains-n') s.push(`[${v1}]${v2}回`);
-    if(type==='all-in') s.push(`含：${v1}`);
-    if(type==='seq') s.push(`順：${v1}`);
-    if(type==='rhyme-full') s.push(`全韻：${v1}`);
-    if(type==='rhyme-end') s.push(`脚韻：${v1}`);
-    if(type==='replace') s.push(`${v1}→${v2}`);
-    if(type==='only') s.push(`のみ：${v1}`);
-    if(type==='excl') s.push(`除：${v1}`);
+    const v1 = row.querySelector('.val1')?.value || "?";
+    const v2 = row.querySelector('.val2')?.value || "?";
+    if(type==='n-pos') items.push(`${v1}文字目：${v2}`);
+    if(type==='contains-n') {
+      const opText = row.querySelector('.op').options[row.querySelector('.op').selectedIndex].text;
+      items.push(`「${v1}」${v2}回(${opText})`);
+    }
+    if(type==='all-in') items.push(`全含：${v1}`);
+    if(type==='seq') items.push(`並び：${v1}`);
+    if(type==='rhyme-full') items.push(`全韻：${v1}`);
+    if(type==='rhyme-end') items.push(`脚韻：${v1}`);
+    if(type==='replace') items.push(`${v1}→${v2}`);
+    if(type==='only') items.push(`のみ：${v1}`);
+    if(type==='excl') items.push(`除外：${v1}`);
   });
   
-  document.getElementById('search-summary').innerText = s.length > 0 ? s.join(', ') : "条件なし";
+  const summaryDiv = document.getElementById('search-summary');
+  summaryDiv.innerHTML = items.length > 0 
+    ? items.map(text => `<span class="summary-item">${text}</span>`).join('') 
+    : '<span class="summary-item">条件なし</span>';
 }
 
 function addNewField(sel) {
@@ -172,7 +173,8 @@ function addNewField(sel) {
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this)">×</button>`;
   container.appendChild(row);
 
-  sel.value = ""; // 選択リセット
+  // 2連続選択を可能にするためのリセット処理
+  sel.selectedIndex = 0; 
   updateDropdown();
 }
 
@@ -184,22 +186,35 @@ function removeField(btn) {
 function updateDropdown() {
   const current = Array.from(document.querySelectorAll('.cond-row')).map(r => r.dataset.type);
   const sel = document.getElementById('add-select');
-  const multi = ['n-pos', 'contains-n', 'replace'];
   
+  // 無制限に選べる項目
+  const multi = ['n-pos', 'contains-n', 'replace'];
+  // 韻の排他ペア
+  const rhymeGroup = ['rhyme-full', 'rhyme-end'];
+  const hasRhyme = current.some(t => rhymeGroup.includes(t));
+
   Array.from(sel.options).forEach(opt => {
     if(!opt.value) return;
-    if(!multi.includes(opt.value) && current.includes(opt.value)){
-      opt.style.display = 'none'; // リストから消去
-    } else {
-      opt.style.display = 'block';
+    const val = opt.value;
+    
+    let shouldHide = false;
+    // 韻の排他制御：どちらか一つあれば両方消す
+    if(rhymeGroup.includes(val) && hasRhyme) {
+      shouldHide = true;
+    } 
+    // 1回限定の制御：既に存在すれば消す
+    else if(!multi.includes(val) && current.includes(val)) {
+      shouldHide = true;
     }
+
+    opt.style.display = shouldHide ? 'none' : 'block';
+    opt.disabled = shouldHide;
   });
 }
 
 async function doSearch() {
   const status = document.getElementById("status");
   const tbody = document.getElementById("results");
-
   const base = {
     len: document.getElementById('base-len').value,
     start: document.getElementById('base-start').value,
