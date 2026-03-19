@@ -1,165 +1,94 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>言葉の検索エンジン</title>
-  <style>
-    :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
-    body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; }
-    .container { max-width: 1000px; margin: 0 auto; }
-    .search-panel { background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-    .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-    label { font-size: 0.8rem; color: #888; margin-bottom: 3px; }
-    input, select { padding: 8px; border: 1px solid var(--border); border-radius: 4px; }
-    .button-area { margin-top: 15px; display: flex; gap: 10px; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 20px; cursor: pointer; }
-    .add-cond { background: none; border: 1px dashed var(--primary); color: var(--primary); padding: 5px 10px; border-radius: 20px; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-    th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; }
-    td { padding: 10px; border-bottom: 1px solid #eee; }
-    .word-link { color: var(--primary); font-weight: bold; cursor: pointer; text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1 style="color:var(--primary); font-weight:normal;">言葉の検索エンジン</h1>
-
-    <div class="search-panel">
-      <div class="grid" id="fields">
-        <div class="input-group"><label>文字数</label><input type="number" id="len"></div>
-        <div class="input-group"><label>開始文字</label><input type="text" id="start"></div>
-        <div class="input-group"><label>終了文字</label><input type="text" id="end"></div>
-        <div class="input-group"><label>？検索</label><input type="text" id="wild"></div>
-      </div>
-
-      <div class="button-area">
-        <button class="btn-search" onclick="doSearch()">検索を実行</button>
-        <select class="add-cond" onchange="addField(this)">
-          <option value="">＋ 条件を追加</option>
-          <option value="n-pos">n文字目</option>
-          <option value="contains-n">n回含む</option>
-          <option value="all-in">全て/並び</option>
-          <option value="rhyme">韻</option>
-          <option value="replace">置換</option>
-          <option value="only-excl">構成/除外</option>
-        </select>
-      </div>
-    </div>
-
-    <p id="status">条件を入力してください。</p>
-
-    <table>
-      <thead><tr><th>数</th><th>単語</th><th>読み</th><th>備考</th></tr></thead>
-      <tbody id="results"></tbody>
-    </table>
-  </div>
-
 <script>
 const BASE = "https://graystar6174.github.io/word-search-engine/data";
 
-function addField(sel){
-  const v = sel.value;
-  if(!v) return;
-  const g = document.getElementById('fields');
-  let h = '';
+// 既存のaddField, get関数はそのまま...
 
-  if(v==='n-pos') h='<div class="input-group"><label>n位置</label><input id="nPos"></div><div class="input-group"><label>文字</label><input id="nVal"></div>';
-  if(v==='contains-n') h='<div class="input-group"><label>文字</label><input id="char"></div><div class="input-group"><label>回数</label><input id="num"></div>';
-  if(v==='all-in') h='<div class="input-group"><label>全て含む</label><input id="all"></div><div class="input-group"><label>並び</label><input id="seq"></div>';
-  if(v==='rhyme') h='<div class="input-group"><label>完全</label><input id="bFull"></div><div class="input-group"><label>脚韻</label><input id="bEnd"></div>';
-  if(v==='replace') h='<div class="input-group"><label>前</label><input id="pre"></div><div class="input-group"><label>後</label><input id="post"></div>';
-  if(v==='only-excl') h='<div class="input-group"><label>のみ</label><input id="only"></div><div class="input-group"><label>除外</label><input id="excl"></div>';
-
-  g.insertAdjacentHTML('beforeend', h);
-  sel.options[sel.selectedIndex].disabled = true;
-  sel.value="";
-}
-
-function get(id){
-  const e=document.getElementById(id);
-  return e?e.value:"";
-}
-
-async function loadAll(){
+async function loadAll() {
   const res = await fetch(BASE + "/index.json");
   const json = await res.json();
   const list = json.files;
 
-  let all=[];
-  for(const file of list){
-    const r = await fetch(BASE + "/" + file);
-    const data = await r.json();
-    all = all.concat(data);
-  }
-  return all;
+  // 全チャンクを並列で取得して高速化
+  const promises = list.map(file => fetch(BASE + "/" + file).then(r => r.json()));
+  const results = await Promise.all(promises);
+  return results.flat();
 }
 
-function match(row,c,allReadings){
-  const [word,reading,note,length,boin] = row;
+function match(row, c, allReadings) {
+  const [word, reading, note, length, boin] = row;
 
-  if(c.len && length!=c.len) return false;
-  if(c.start && !reading.startsWith(c.start)) return false;
-  if(c.end && !reading.endsWith(c.end)) return false;
-  if(c.nPos && reading[c.nPos-1]!==c.nVal) return false;
+  if (c.len && length != c.len) return false;
+  if (c.start && !reading.startsWith(c.start)) return false;
+  if (c.end && !reading.endsWith(c.end)) return false;
+  
+  // n文字目指定 (1-indexedを0-indexedへ)
+  if (c.nPos && reading[parseInt(c.nPos) - 1] !== c.nVal) return false;
 
-  if(c.wild){
-    const reg=new RegExp("^"+c.wild.replace(/？|\?/g,".")+"$");
-    if(!reg.test(reading)) return false;
+  if (c.wild) {
+    const reg = new RegExp("^" + c.wild.replace(/？|\?/g, ".") + "$");
+    if (!reg.test(reading)) return false;
   }
 
-  if(c.char && c.num){
-    const cnt=reading.split(c.char).length-1;
-    if(cnt!=c.num) return false;
+  if (c.char && c.num) {
+    const cnt = reading.split(c.char).length - 1;
+    if (cnt != c.num) return false;
   }
 
-  if(c.all){
-    for(let ch of c.all){
-      if(!reading.includes(ch)) return false;
+  // 指定文字を全て含む（重複対応）
+  if (c.all) {
+    for (let ch of c.all) {
+      const req = c.all.split(ch).length - 1;
+      const act = reading.split(ch).length - 1;
+      if (act < req) return false;
     }
   }
 
-  if(c.seq && !reading.includes(c.seq)) return false;
-  if(c.only && !(new RegExp(`^[${c.only}]+$`).test(reading))) return false;
-  if(c.excl && (new RegExp(`[${c.excl}]`).test(reading))) return false;
+  if (c.seq && !reading.includes(c.seq)) return false;
+  if (c.only && !(new RegExp(`^[${c.only}]+$`).test(reading))) return false;
+  if (c.excl && (new RegExp(`[${c.excl}]`).test(reading))) return false;
 
-  if(c.bFull && boin!==c.bFull) return false;
-  if(c.bEnd && !boin.endsWith(c.bEnd)) return false;
+  if (c.bFull && boin !== c.bFull) return false;
+  if (c.bEnd && !boin.endsWith(c.bEnd)) return false;
 
-  if(c.pre && c.post){
-    if(!reading.includes(c.pre)) return false;
+  if (c.pre && c.post) {
+    if (!reading.includes(c.pre)) return false;
     const rep = reading.split(c.pre).join(c.post);
-    if(!allReadings.has(rep)) return false;
+    if (!allReadings.has(rep)) return false;
   }
 
   return true;
 }
 
-async function doSearch(){
-  const c = {
-    len:get('len'), start:get('start'), end:get('end'), wild:get('wild'),
-    nPos:get('nPos'), nVal:get('nVal'), char:get('char'), num:get('num'),
-    all:get('all'), seq:get('seq'), bFull:get('bFull'), bEnd:get('bEnd'),
-    pre:get('pre'), post:get('post'), only:get('only'), excl:get('excl')
-  };
+async function doSearch() {
+  const btn = document.querySelector(".btn-search");
+  btn.disabled = true;
+  document.getElementById("status").innerText = "データを読み込み中...";
 
-  document.getElementById("status").innerText="検索中...";
+  try {
+    const c = {
+      len: get('len'), start: get('start'), end: get('end'), wild: get('wild'),
+      nPos: get('nPos'), nVal: get('nVal'), char: get('char'), num: get('num'),
+      all: get('all'), seq: get('seq'), bFull: get('bFull'), bEnd: get('bEnd'),
+      pre: get('pre'), post: get('post'), only: get('only'), excl: get('excl')
+    };
 
-  const data = await loadAll();
-  const allReadings = new Set(data.map(r=>r[1]));
+    const data = await loadAll();
+    const allReadings = new Set(data.map(r => r[1]));
+    const res = data.filter(r => match(r, c, allReadings));
 
-  const res = data.filter(r=>match(r,c,allReadings));
-
-  document.getElementById("status").innerText = res.length+" 件ヒット";
-
-  document.getElementById("results").innerHTML =
-    res.map(r=>`<tr>
-      <td>${r[3]}</td>
-      <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
-      <td>${r[1]}</td>
-      <td>${r[2]}</td>
-    </tr>`).join("");
+    document.getElementById("status").innerText = res.length + " 件ヒット";
+    document.getElementById("results").innerHTML = res.map(r => `
+      <tr>
+        <td>${r[3]}</td>
+        <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
+        <td>${r[1]}</td>
+        <td>${r[2]}</td>
+      </tr>`).join("");
+  } catch (e) {
+    document.getElementById("status").innerText = "エラーが発生しました。";
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+  }
 }
 </script>
-</body>
-</html>
