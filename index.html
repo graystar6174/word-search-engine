@@ -38,16 +38,14 @@
     .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; position: relative; }
     .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
 
-    /* カスタムプルダウン（動的表示位置） */
     .custom-select-container { position: relative; }
-    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; display: inline-block; transition: background 0.2s; }
+    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; display: inline-block; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
     .custom-select-trigger:hover { background: #f0f7ff; }
     .custom-options { display: none; position: absolute; left: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; padding: 5px 0; }
     .custom-options div { padding: 10px 15px; cursor: pointer; font-size: 0.9rem; color: var(--text); border-bottom: 1px solid #f9f9f9; }
     .custom-options div:last-child { border-bottom: none; }
     .custom-options div:hover { background: #f0f7ff; color: var(--primary); }
     .custom-options.show { display: block; }
-    /* 上方向に表示する際のアニメーション用クラス */
     .drop-up { bottom: 120%; top: auto; }
     .drop-down { top: 110%; bottom: auto; }
 
@@ -56,7 +54,6 @@
     td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
 
-    /* 最下部の説明スペース */
     .description-footer { margin-top: 40px; padding: 30px 20px; background: #fff; border-top: 1px solid var(--border); color: #777; font-size: 0.85rem; line-height: 1.6; }
   </style>
 </head>
@@ -99,19 +96,24 @@
     </table>
   </div>
 
-  <footer class="description-footer">
-    <div style="max-width: 1000px; margin: 0 auto;">
-      <h3 style="color: var(--primary); margin-top: 0;">ご利用方法 / 備考</h3>
-      <p>ここに検索エンジンの使い方の詳細や、データの出典、更新情報などを記載できます。</p>
-      <ul>
-        <li><b>n文字目の指定:</b> 特定の位置にある文字を固定して検索します。</li>
-        <li><b>入力欄の並びを含む:</b> 入力した文字列がそのままの順序で含まれる単語を検索します。</li>
-        <li><b>置換して成り立つか:</b> 指定した文字を入れ替えても辞書に存在する単語をリストアップします。</li>
-      </ul>
-    </div>
-  </footer>
+  <footer class="description-footer" id="footer-area"></footer>
 
 <script>
+/**
+ * 💡 ここを書き換えるだけで説明文を更新できます
+ */
+const FOOTER_CONTENT = `
+  <div style="max-width: 1000px; margin: 0 auto;">
+    <h3 style="color: var(--primary); margin-top: 0;">ご利用方法 / 備考</h3>
+    <p>ここに検索エンジンの使い方の詳細や、データの出典、更新情報などを記載できます。</p>
+    <ul>
+      <li><b>n文字目の指定:</b> 特定の位置にある文字を固定して検索します。</li>
+      <li><b>入力欄の並びを含む:</b> 入力した文字列がそのままの順序で含まれる単語を検索します。</li>
+      <li><b>置換して成り立つか:</b> 指定した文字を入れ替えても辞書に存在する単語をリストアップします。</li>
+    </ul>
+  </div>
+`;
+
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 
 const COND_MASTER = [
@@ -126,31 +128,32 @@ const COND_MASTER = [
   { val: "excl", text: "除外文字", multi: false }
 ];
 
-window.onload = updateDropdown;
-
-window.onclick = function(e) {
-  if (!e.target.matches('.custom-select-trigger')) {
-    document.getElementById('custom-options').classList.remove('show');
-  }
+window.onload = () => {
+  updateDropdown();
+  document.getElementById('footer-area').innerHTML = FOOTER_CONTENT;
 };
+
+// プルダウン外タップで閉じる（pointerdownでモバイル対応を強化）
+document.addEventListener('pointerdown', (e) => {
+  const optionsDiv = document.getElementById('custom-options');
+  const trigger = document.getElementById('dropdown-trigger');
+  if (!trigger.contains(e.target) && !optionsDiv.contains(e.target)) {
+    optionsDiv.classList.remove('show');
+  }
+});
 
 function toggleDropdown(e) {
   e.stopPropagation();
   const optionsDiv = document.getElementById('custom-options');
   const trigger = document.getElementById('dropdown-trigger');
   
-  // 表示位置の計算
   const rect = trigger.getBoundingClientRect();
-  const windowHeight = window.innerHeight;
-  const spaceBelow = windowHeight - rect.bottom;
+  const spaceBelow = window.innerHeight - rect.bottom;
   
-  // 下に250px以上のスペースがなければ上方向に展開
   if (spaceBelow < 250) {
-    optionsDiv.classList.remove('drop-down');
-    optionsDiv.classList.add('drop-up');
+    optionsDiv.classList.replace('drop-down', 'drop-up') || optionsDiv.classList.add('drop-up');
   } else {
-    optionsDiv.classList.remove('drop-up');
-    optionsDiv.classList.add('drop-down');
+    optionsDiv.classList.replace('drop-up', 'drop-down') || optionsDiv.classList.add('drop-down');
   }
 
   optionsDiv.classList.toggle('show');
