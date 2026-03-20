@@ -24,7 +24,6 @@
     
     #base-len, #base-start, #base-end { width: 50px; } 
     #base-wild { width: 120px; }
-    /* 無効化時のスタイル */
     input:disabled { background-color: #f0f0f0; cursor: not-allowed; color: #ccc; }
 
     #dynamic-fields { margin-bottom: 15px; }
@@ -169,12 +168,11 @@ const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
 let currentFilteredData = [];
 
-// 「？検索」入力時に「文字数」を無効化する
 function handleWildInput(el) {
   const lenInput = document.getElementById('base-len');
   if (el.value.trim() !== "") {
     lenInput.disabled = true;
-    lenInput.value = ""; // 入力値をクリア
+    lenInput.value = "";
   } else {
     lenInput.disabled = false;
   }
@@ -288,7 +286,7 @@ function getCharCounts(str) {
 
 function normalizeReading(str) {
   if (!str) return "";
-  const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','ni':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
+  const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
   let res = "";
   for (let i = 0; i < str.length; i++) {
     if (str[i] === "ー" && i > 0) {
@@ -327,7 +325,6 @@ async function doSearch() {
   let baseWild = document.getElementById('base-wild').value;
   const dynamicRows = document.querySelectorAll('.cond-row');
   
-  // ？検索がある場合は、文字数指定を内部的に無視する
   const baseLen = baseWild ? null : baseLenInput.value;
 
   if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
@@ -359,17 +356,12 @@ async function doSearch() {
       const sAttr = String(attr || "");
       const sBoin = String(boin || "");
 
-      // 文字数チェック：？検索がない場合のみ適用
       if (baseLen && len != baseLen) return false;
-      
       if (baseStart && !sReading.startsWith(baseStart)) return false;
       if (baseEnd && !sReading.endsWith(baseEnd)) return false;
       
-      // ？検索（ワイルドカード）のロジック
       if (baseWild) {
-        // パターンそのものの長さと単語の長さが一致しない場合は除外
         if (sReading.length !== baseWild.length) return false;
-        
         let patternStr = baseWild.replace(/[?？]/g, '.');
         let pattern = new RegExp('^' + patternStr + '$');
         if (!pattern.test(sReading)) return false;
@@ -402,8 +394,15 @@ async function doSearch() {
           const target = getCharCounts(sReading);
           for (const c in req) { if ((target[c]||0) < req[c]) return false; }
         }
-        else if (type === 'only' && !(new RegExp('^[' + v1 + ']+$')).test(sReading)) return false;
-        else if (type === 'excl') { for (const c of v1) { if (sReading.includes(c)) return false; } }
+        else if (type === 'only') {
+          const normalized = normalizeReading(sReading);
+          if (!(new RegExp('^[' + v1 + ']+$')).test(normalized)) return false;
+        }
+        else if (type === 'excl') { 
+          // ーを母音化した読みを作成して除外判定
+          const normalized = normalizeReading(sReading);
+          for (const c of v1) { if (normalized.includes(c)) return false; } 
+        }
         else if (type === 'replace') {
           if (!sReading.includes(v1)) return false;
           const replaced = sReading.split(v1).join(v2 || "");
