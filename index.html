@@ -7,7 +7,6 @@
   <title>集い用検索エンジンver.2</title>
   <style>
     :root { 
-      /* 色を少し淡く、柔らかいトーンに変更 */
       --primary: #90caf9; 
       --primary-dark: #64b5f6;
       --bg: #f8fbff; 
@@ -38,7 +37,6 @@
     .cond-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; position: relative; }
     .btn-remove { background: #fff0f0; color: #ff8080; border: 1px solid #ffdada; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
-    /* 50音パネル */
     .kana-panel { display: none; position: absolute; z-index: 2000; background: white; border: 2px solid var(--primary); border-radius: 8px; padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
     .kana-grid { display: flex; flex-direction: row-reverse; gap: 6px; }
     .kana-col { display: flex; flex-direction: column; gap: 6px; }
@@ -58,8 +56,6 @@
     .filter-group { display: flex; align-items: center; gap: 4px; }
 
     .custom-select-trigger { background: white; border: 2px dashed var(--primary); color: var(--primary-dark); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: bold; display: inline-block; }
-    
-    /* プルダウンのスクロール設定（ページ全体が動くのを防止） */
     .custom-options { 
       display: none; position: absolute; background: white; border: 2px solid var(--border); border-radius: 8px; 
       box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; 
@@ -159,6 +155,11 @@ let currentFilteredData = [];
 let activeInput = null;
 let currentPage = 1;
 const pageSize = 100;
+
+// 母音変換マップ（検索時の入力変換用）
+const BOIN_CONV_MAP = {
+  'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'a','き':'i','く':'u','け':'e','こ':'o','さ':'a','し':'i','す':'u','せ':'e','そ':'o','た':'a','ち':'i','つ':'u','て':'e','と':'o','な':'a','ni':'i','ぬ':'u','ね':'e','の':'o','は':'a','ひ':'i','ふ':'u','へ':'e','ほ':'o','ま':'a','み':'i','む':'u','め':'e','も':'o','や':'a','ゆ':'u','よ':'o','ら':'a','り':'i','る':'u','れ':'e','ろ':'o','わ':'a','を':'o','ん':'n','っ':'t','が':'a','ぎ':'i','ぐ':'u','げ':'e','ご':'o','ざ':'a','じ':'i','ず':'u','ぜ':'e','ぞ':'o','だ':'a','ぢ':'i','づ':'u','で':'e','ど':'o','ば':'a','び':'i','ぶ':'u','べ':'e','ぼ':'o','ぱ':'a','ぴ':'i','ぷ':'u','ぺ':'e','ぽ':'o','ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'a','ゅ':'u','ょ':'o'
+};
 
 const KANA_ORDER = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
 const KANA_MAP_DATA = [
@@ -266,8 +267,8 @@ function addNewField(val) {
   if(val==='n-pos') h = `<input type="number" class="val1" style="width:40px"> 文字目が <input type="text" class="val2" style="width:50px">`;
   else if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2" style="width:40px"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
   else if(val==='seq') h = `<input type="text" class="val1" style="width:80px"> の並びを含む`; 
-  else if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px">`;
-  else if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px">`;
+  else if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px" placeholder="あいうえお">`;
+  else if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px" placeholder="あいうえお">`;
   else if(val==='all-in') h = `全て含む：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
   else if(val==='only') h = `構成文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
   else if(val==='excl') h = `除外文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
@@ -296,13 +297,40 @@ function updateDropdown() {
   });
 }
 
+// 母音検索用：利用者の入力をアルファベット韻に変換
+function convToBoin(str) {
+  let res = "";
+  const chars = str.split("");
+  for (let i = 0; i < chars.length; i++) {
+    let char = chars[i];
+    let nextChar = chars[i + 1];
+    if (nextChar && "ぁぃぅぇぉゃゅょ".includes(nextChar)) {
+      res += BOIN_CONV_MAP[nextChar] || "?";
+      i++; continue;
+    }
+    if (char === "ー" && res.length > 0) {
+      const prev = res[res.length - 1];
+      res += (prev === 'n' || prev === 't') ? "ー" : prev;
+      continue;
+    }
+    res += BOIN_CONV_MAP[char] || char;
+  }
+  return res;
+}
+
 function normalizeReading(str) {
-  const boinMap = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
   const seionMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
   let res = "";
   for (let i = 0; i < str.length; i++) {
-    if (str[i] === "ー" && i > 0) res += boinMap[str[i-1]] || "ー";
-    else res += seionMap[str[i]] || str[i];
+    if (str[i] === "ー" && i > 0) {
+      // 韻ではなく文字としての正規化なので、母音変換マップを利用
+      const prevChar = str[i-1];
+      const prevBoin = BOIN_CONV_MAP[prevChar];
+      const reverseMap = {'a':'あ','i':'い','u':'う','e':'え','o':'お'};
+      res += reverseMap[prevBoin] || "ー";
+    } else {
+      res += seionMap[str[i]] || str[i];
+    }
   }
   return res;
 }
@@ -321,19 +349,14 @@ function renderTable() {
   const start = (currentPage - 1) * pageSize, end = start + pageSize;
   const pageData = currentFilteredData.slice(start, end);
   const totalPages = Math.ceil(currentFilteredData.length / pageSize) || 1;
-  document.getElementById("results").innerHTML = pageData.map(r => `<tr><td>${r[4]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td></tr>`).join("");
+  document.getElementById("results").innerHTML = pageData.map(r => `<tr><td>${r[4]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td>${r[2] || ""}</td></tr>`).join("");
   document.getElementById('page-display').innerText = `${currentFilteredData.length}件 (${currentPage} / ${totalPages} ページ)`;
   const pagin = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(-1)">前へ</button><span style="margin:0 10px">${currentPage} / ${totalPages}</span><button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(1)">次へ</button>`;
   document.getElementById('pagination-top').innerHTML = pagin;
   document.getElementById('pagination-bottom').innerHTML = pagin;
 }
 
-// ページ切り替え時に最上部へ戻る（behavior: 'auto'で即時戻し）
-function changePage(step) { 
-  currentPage += step; 
-  window.scrollTo(0, 0); 
-  renderTable(); 
-}
+function changePage(step) { currentPage += step; window.scrollTo(0, 0); renderTable(); }
 
 async function doSearch() {
   const status = document.getElementById("status");
@@ -346,21 +369,29 @@ async function doSearch() {
     const allReadings = new Set(allData.map(d => String(d[1])));
     const baseLen = document.getElementById('base-wild').value ? null : document.getElementById('base-len').value;
     const baseStart = document.getElementById('base-start').value, baseEnd = document.getElementById('base-end').value, baseWild = document.getElementById('base-wild').value;
-    const onlyGen = document.getElementById('filter-general').checked, exCats = [], exVerb = document.getElementById('ex-verb').checked;
-    if(document.getElementById('ex-proper').checked) exCats.push("固有名詞");
-    if(document.getElementById('ex-person').checked) exCats.push("人名");
-    if(document.getElementById('ex-place').checked) exCats.push("地名");
-    if(document.getElementById('ex-work').checked) exCats.push("作品名");
+    const onlyGen = document.getElementById('filter-general').checked;
+    
+    // 除外フラグの軽量ID化
+    const exIds = [];
+    if(document.getElementById('ex-proper').checked) exIds.push("P");
+    if(document.getElementById('ex-person').checked) exIds.push("H");
+    if(document.getElementById('ex-place').checked) exIds.push("L");
+    if(document.getElementById('ex-work').checked) exIds.push("W");
+    const exVerb = document.getElementById('ex-verb').checked;
 
     currentFilteredData = allData.filter(row => {
+      // row構造 [0:単語, 1:読み, 2:備考, 3:韻, 4:文字数, 5:一般的(G/M), 6:属性(ID), 7:活用]
       const [word, reading, note, boin, len, isGen, attr] = row;
       const sRead = String(reading || ""), sAttr = String(attr || "");
       if (baseLen && len != baseLen) return false;
       if (baseStart && !sRead.startsWith(baseStart)) return false;
       if (baseEnd && !sRead.endsWith(baseEnd)) return false;
       if (baseWild && (sRead.length !== baseWild.length || !(new RegExp('^' + baseWild.replace(/[?？]/g, '.') + '$')).test(sRead))) return false;
-      if (onlyGen && isGen !== "一般的") return false;
-      if (exCats.some(c => sAttr.includes(c)) || (exVerb && sAttr.includes("動詞"))) return false;
+      
+      // 軽量化フラグ判定
+      if (onlyGen && isGen !== "G") return false;
+      if (exIds.some(id => sAttr === id) || (exVerb && sAttr === "V")) return false;
+
       for (const dRow of document.querySelectorAll('.cond-row')) {
         const type = dRow.dataset.type, v1 = dRow.querySelector('.val1')?.value, v2 = dRow.querySelector('.val2')?.value;
         if (type === 'n-pos' && sRead[parseInt(v1)-1] !== v2) return false;
@@ -369,8 +400,11 @@ async function doSearch() {
           if ((op === 'eq' && count !== target) || (op === 'ge' && count < target) || (op === 'le' && count > target)) return false;
         }
         if (type === 'seq' && !sRead.includes(v1)) return false;
-        if (type === 'rhyme-full' && String(boin) !== v1) return false;
-        if (type === 'rhyme-end' && !String(boin).endsWith(v1)) return false;
+        
+        // 韻の判定：v1(日本語)を軽量アルファベットに変換してから比較
+        if (type === 'rhyme-full' && String(boin) !== convToBoin(v1)) return false;
+        if (type === 'rhyme-end' && !String(boin).endsWith(convToBoin(v1))) return false;
+        
         if (type === 'all-in' || type === 'only' || type === 'excl') {
           const norm = normalizeReading(sRead);
           if (type === 'all-in') { for(let c of v1) if(!norm.includes(c)) return false; }
