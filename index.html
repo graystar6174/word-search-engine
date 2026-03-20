@@ -45,7 +45,12 @@
     .custom-options div:hover { background: #f0f7ff; }
     .custom-options.show { display: block; }
 
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    /* ステータスとソートのレイアウト */
+    .status-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px; }
+    .sort-control { font-size: 0.85rem; color: #666; display: flex; align-items: center; gap: 5px; }
+    #sort-order { padding: 3px 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     th { background: #eef7fe; padding: 12px 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; color: #5a7d9a; }
     td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
@@ -97,7 +102,16 @@
       <div id="search-summary" onclick="togglePanel()"></div>
     </div>
     
-    <p id="status">条件を入力して検索ボタンを押してください。</p>
+    <div class="status-bar">
+      <p id="status" style="margin:0;">条件を入力して検索ボタンを押してください。</p>
+      <div class="sort-control">
+        <span>⇅ ソート:</span>
+        <select id="sort-order" onchange="applySortAndRender()">
+          <option value="len-asc">文字数 昇順</option>
+          <option value="len-desc">文字数 降順</option>
+        </select>
+      </div>
+    </div>
 
     <table>
       <thead><tr><th style="width:10%">文字数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
@@ -110,6 +124,7 @@
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
+let currentFilteredData = []; // ソート用に結果を保持
 
 function syncProper(master) {
   const subs = document.querySelectorAll('.sub-ex');
@@ -130,11 +145,11 @@ const COND_MASTER = [
 
 window.onload = () => {
   updateDropdown();
-  document.getElementById('footer-area').innerHTML = `<h3>備考</h3><p>最新のデータで検索を行います。置換機能は辞書に存在する単語への変化を判定します。</p>`;
+  document.getElementById('footer-area').innerHTML = `<h3>備考</h3><p>最新のデータで検索を行います。ソートは常に五十音順（ーを母音として扱う）を基準としています。</p>`;
 };
 
-function toggleDropdown(e) {
-  e.stopPropagation();
+function toggleDropdown(event) {
+  event.stopPropagation();
   document.getElementById('custom-options').classList.toggle('show');
 }
 
@@ -203,7 +218,6 @@ function updateDropdown() {
   COND_MASTER.forEach(m => {
     if (m.singleton && activeConditions.has(m.val)) return;
     if (m.group && activeConditions.has(m.group)) return;
-    
     const opt = document.createElement('div');
     opt.textContent = m.text;
     opt.onclick = () => addNewField(m.val);
@@ -217,9 +231,51 @@ function getCharCounts(str) {
   return counts;
 }
 
+// 読みの「ー」を母音に変換して正規化（ソート用）
+function normalizeReading(str) {
+  if (!str) return "";
+  const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
+  let res = "";
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === "ー" && i > 0) {
+      res += map[str[i-1]] || "ー";
+    } else {
+      res += str[i];
+    }
+  }
+  return res;
+}
+
+// ソートを適用して再描画
+function applySortAndRender() {
+  const order = document.getElementById("sort-order").value;
+  
+  currentFilteredData.sort((a, b) => {
+    // 常に五十音順（正規化読み）をベースにする
+    const readA = normalizeReading(a[1]);
+    const readB = normalizeReading(b[1]);
+    
+    if (order === "len-asc") {
+      if (a[4] !== b[4]) return a[4] - b[4];
+    } else if (order === "len-desc") {
+      if (a[4] !== b[4]) return b[4] - a[4];
+    }
+    
+    return readA.localeCompare(readB, 'ja');
+  });
+
+  const tbody = document.getElementById("results");
+  tbody.innerHTML = currentFilteredData.map(r => `
+    <tr>
+      <td>${r[4]}</td>
+      <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
+      <td>${r[1]}</td>
+      <td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td>
+    </tr>`).join("");
+}
+
 async function doSearch() {
   const status = document.getElementById("status");
-  const tbody = document.getElementById("results");
   
   const onlyGeneral = document.getElementById('filter-general').checked;
   const exCats = [];
@@ -239,7 +295,7 @@ async function doSearch() {
     
     const allReadings = new Set(allData.map(d => String(d[1])));
 
-    const filtered = allData.filter(row => {
+    currentFilteredData = allData.filter(row => {
       const [word, reading, note, boin, len, isGen, attr, katsuyo] = row;
       const sReading = String(reading || "");
       const sAttr = String(attr || "");
@@ -299,14 +355,8 @@ async function doSearch() {
       return true;
     });
 
-    status.innerText = filtered.length + " 件ヒット";
-    tbody.innerHTML = filtered.map(r => `
-      <tr>
-        <td>${r[4]}</td>
-        <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
-        <td>${r[1]}</td>
-        <td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td>
-      </tr>`).join("");
+    status.innerText = currentFilteredData.length + " 件ヒット";
+    applySortAndRender(); // ソートをかけて描画
   } catch (err) {
     status.innerText = "エラー: " + err;
   }
