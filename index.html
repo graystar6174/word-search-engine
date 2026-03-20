@@ -7,7 +7,7 @@
   <style>
     :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-    .container { max-width: 1000px; margin: 0 auto; flex: 1; width: 100%; }
+    .container { max-width: 1100px; margin: 0 auto; flex: 1; width: 100%; }
     .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
     
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
@@ -24,29 +24,30 @@
     #base-len, #base-start, #base-end { width: 50px; } 
     #base-wild { width: 120px; }
 
-    .filter-options { display: flex; flex-wrap: wrap; gap: 15px; background: #fcfdfe; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; border: 1px solid #f0f5f9; }
-    .filter-group { display: flex; align-items: center; gap: 5px; }
-    .filter-group input[type="checkbox"] { cursor: pointer; }
-
-    #dynamic-fields { margin-bottom: 10px; }
-    .cond-row { display: flex; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
+    #dynamic-fields { margin-bottom: 15px; }
+    .cond-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
     
     input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
     input[type="number"] { width: 50px; }
     .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
-    .button-area { margin-top: 10px; display: flex; gap: 10px; align-items: center; position: relative; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 8px 25px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    .button-area { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #eee; padding-top: 15px; }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    
+    .filter-options { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #666; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 4px; }
+    .filter-group input[type="checkbox"] { cursor: pointer; margin: 0; }
 
-    .custom-select-container { position: relative; }
-    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; transition: background 0.2s; }
-    .custom-options { display: none; position: absolute; left: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; }
+    .custom-select-container { position: relative; margin-bottom: 10px; }
+    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; }
+    .custom-options { display: none; position: absolute; left: 0; bottom: 100%; margin-bottom: 5px; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 250px; }
     .custom-options div { padding: 10px 15px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
+    .custom-options div:hover { background: #f0f7ff; }
     .custom-options.show { display: block; }
 
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
-    th { background: #eef7fe; padding: 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; }
-    td { padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    th { background: #eef7fe; padding: 12px 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; color: #5a7d9a; }
+    td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
 
     .description-footer { margin-top: 40px; padding: 30px 20px; background: #fff; border-top: 1px solid var(--border); color: #777; font-size: 0.85rem; line-height: 1.6; }
@@ -70,36 +71,36 @@
           <div class="input-group"><label>？検索</label><input type="text" id="base-wild"></div>
         </div>
 
-        <div class="filter-options">
-          <div class="filter-group">
-            <input type="checkbox" id="filter-general"> <label for="filter-general"><b>一般的</b>な単語のみ表示</label>
-          </div>
-          <span style="color:#ddd">|</span>
-          <span style="color:#888; margin-right:5px;">検索結果から除外:</span>
-          <div class="filter-group"><input type="checkbox" id="ex-proper" onchange="syncProper(this)"> <label for="ex-proper">固有名詞</label></div>
-          <div class="filter-group"><input type="checkbox" id="ex-person" class="sub-ex"> <label for="ex-person">人名</label></div>
-          <div class="filter-group"><input type="checkbox" id="ex-place" class="sub-ex"> <label for="ex-place">地名</label></div>
-          <div class="filter-group"><input type="checkbox" id="ex-work" class="sub-ex"> <label for="ex-work">作品名</label></div>
-          <div class="filter-group"><input type="checkbox" id="ex-verb"> <label for="ex-verb">動詞</label></div>
-        </div>
-
         <div id="dynamic-fields"></div>
 
+        <div class="custom-select-container">
+          <div class="custom-select-trigger" id="dropdown-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
+          <div class="custom-options" id="custom-options"></div>
+        </div>
+
         <div class="button-area">
-          <div class="custom-select-container">
-            <div class="custom-select-trigger" id="dropdown-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
-            <div class="custom-options" id="custom-options"></div>
-          </div>
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
+          
+          <div class="filter-options">
+            <div class="filter-group">
+              <input type="checkbox" id="filter-general"> <label for="filter-general">一般的のみ</label>
+            </div>
+            <span style="color:#ddd">|</span>
+            <div class="filter-group"><input type="checkbox" id="ex-proper" onchange="syncProper(this)"> <label for="ex-proper">固有名詞除外</label></div>
+            <div class="filter-group"><input type="checkbox" id="ex-person" class="sub-ex"> <label for="ex-person">人名</label></div>
+            <div class="filter-group"><input type="checkbox" id="ex-place" class="sub-ex"> <label for="ex-place">地名</label></div>
+            <div class="filter-group"><input type="checkbox" id="ex-work" class="sub-ex"> <label for="ex-work">作品名</label></div>
+            <div class="filter-group"><input type="checkbox" id="ex-verb"> <label for="ex-verb">動詞除外</label></div>
+          </div>
         </div>
       </div>
       <div id="search-summary" onclick="togglePanel()"></div>
     </div>
     
-    <p id="status">条件を入力してください。</p>
+    <p id="status">条件を入力して検索ボタンを押してください。</p>
 
     <table>
-      <thead><tr><th style="width:10%">数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
+      <thead><tr><th style="width:10%">文字数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
       <tbody id="results"></tbody>
     </table>
   </div>
@@ -108,6 +109,7 @@
 
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
+let activeConditions = new Set();
 
 function syncProper(master) {
   const subs = document.querySelectorAll('.sub-ex');
@@ -115,26 +117,30 @@ function syncProper(master) {
 }
 
 const COND_MASTER = [
-  { val: "n-pos", text: "n文字目の指定" },
-  { val: "contains-n", text: "特定の文字をn回含む" },
-  { val: "seq", text: "の並びを含む" }, 
-  { val: "rhyme-full", text: "韻（完全一致）" },
-  { val: "rhyme-end", text: "韻（脚韻）" },
-  { val: "all-in", text: "全て含む（カウント対応）" },
-  { val: "only", text: "構成文字のみ" },
-  { val: "excl", text: "除外文字" },
-  { val: "replace", text: "置換（2文字以上対応）" }
+  { val: "n-pos", text: "n文字目の指定", singleton: false },
+  { val: "contains-n", text: "特定の文字をn回含む", singleton: false },
+  { val: "seq", text: "の並びを含む", singleton: false }, 
+  { val: "rhyme-full", text: "韻（完全一致）", singleton: true, group: "rhyme" },
+  { val: "rhyme-end", text: "韻（脚韻）", singleton: true, group: "rhyme" },
+  { val: "all-in", text: "任意の文字を全て含む", singleton: true },
+  { val: "only", text: "任意の文字で構成", singleton: true },
+  { val: "excl", text: "任意の文字を除外", singleton: true },
+  { val: "replace", text: "入力欄 → 入力欄 に置換しても成立", singleton: false }
 ];
 
 window.onload = () => {
   updateDropdown();
-  document.getElementById('footer-area').innerHTML = `<h3>ご利用方法</h3><p>最新のデータで検索を行います。デプロイ直後は反映まで数分かかる場合があります。</p>`;
+  document.getElementById('footer-area').innerHTML = `<h3>備考</h3><p>最新のデータで検索を行います。置換機能は辞書に存在する単語への変化を判定します。</p>`;
 };
 
 function toggleDropdown(e) {
   e.stopPropagation();
   document.getElementById('custom-options').classList.toggle('show');
 }
+
+document.addEventListener('click', () => {
+  document.getElementById('custom-options').classList.remove('show');
+});
 
 function togglePanel() {
   const content = document.getElementById('panel-content');
@@ -158,31 +164,46 @@ function updateSummary() {
 }
 
 function addNewField(val) {
+  const master = COND_MASTER.find(m => m.val === val);
+  if (master.singleton) activeConditions.add(val);
+  if (master.group) activeConditions.add(master.group);
+
   const container = document.getElementById('dynamic-fields');
   const row = document.createElement('div');
   row.className = 'cond-row';
   row.dataset.type = val;
-  let h = '';
+  row.dataset.group = master.group || "";
   
+  let h = '';
   if(val==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:50px">`;
-  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option></select> 含む`;
+  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
   if(val==='seq') h = `<input type="text" class="val1" style="width:80px"> の並びを含む`; 
   if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px">`;
   if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px">`;
   if(val==='all-in') h = `全て含む：<input type="text" class="val1" style="width:150px">`;
-  if(val==='only') h = `構成文字のみ：<input type="text" class="val1" style="width:150px">`;
+  if(val==='only') h = `構成文字：<input type="text" class="val1" style="width:150px">`;
   if(val==='excl') h = `除外文字：<input type="text" class="val1" style="width:150px">`;
-  if(val==='replace') h = `<input type="text" class="val1" style="width:60px"> を <input type="text" class="val2" style="width:60px"> に置換して一致`;
+  if(val==='replace') h = `<input type="text" class="val1" style="width:70px" placeholder="おか"> → <input type="text" class="val2" style="width:70px" placeholder="つき"> に置換して成立`;
   
-  row.innerHTML = h + `<button class="btn-remove" onclick="this.parentNode.remove();">×</button>`;
+  row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this, '${val}', '${master.group || ""}')">×</button>`;
   container.appendChild(row);
-  document.getElementById('custom-options').classList.remove('show');
+  updateDropdown();
+}
+
+function removeField(btn, val, group) {
+  btn.parentNode.remove();
+  activeConditions.delete(val);
+  if (group) activeConditions.delete(group);
+  updateDropdown();
 }
 
 function updateDropdown() {
   const optionsDiv = document.getElementById('custom-options');
   optionsDiv.innerHTML = '';
   COND_MASTER.forEach(m => {
+    if (m.singleton && activeConditions.has(m.val)) return;
+    if (m.group && activeConditions.has(m.group)) return;
+    
     const opt = document.createElement('div');
     opt.textContent = m.text;
     opt.onclick = () => addNewField(m.val);
@@ -190,12 +211,9 @@ function updateDropdown() {
   });
 }
 
-// 補助：文字出現数をカウントする関数
 function getCharCounts(str) {
   const counts = {};
-  for (const char of str) {
-    counts[char] = (counts[char] || 0) + 1;
-  }
+  for (const char of str) { counts[char] = (counts[char] || 0) + 1; }
   return counts;
 }
 
@@ -211,43 +229,37 @@ async function doSearch() {
   if(document.getElementById('ex-work').checked) exCats.push("作品名");
   const exVerb = document.getElementById('ex-verb').checked;
 
-  status.innerText = "読み込み中...";
+  status.innerText = "データ読み込み中...";
   try {
     const resIdx = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
     const indexData = await resIdx.json();
     const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file}?t=${Date.now()}`).then(r => r.json()));
     const chunkResults = await Promise.all(promises);
     const allData = chunkResults.flat();
+    
+    const allReadings = new Set(allData.map(d => String(d[1])));
 
     const filtered = allData.filter(row => {
-      // 構造: [word, reading, note, boin, length, isGeneral, attr, katsuyo]
-      const [word, reading, note, boin, length, isGeneral, attr, katsuyo] = row;
-      
+      const [word, reading, note, boin, len, isGen, attr, katsuyo] = row;
       const sReading = String(reading || "");
       const sAttr = String(attr || "");
       const sBoin = String(boin || "");
 
-      // 基本フィルタ
       const baseLen = document.getElementById('base-len').value;
-      if (baseLen && length != baseLen) return false;
+      if (baseLen && len != baseLen) return false;
+      if (document.getElementById('base-start').value && !sReading.startsWith(document.getElementById('base-start').value)) return false;
+      if (document.getElementById('base-end').value && !sReading.endsWith(document.getElementById('base-end').value)) return false;
       
-      const bStart = document.getElementById('base-start').value;
-      if (bStart && !sReading.startsWith(bStart)) return false;
-
-      const bEnd = document.getElementById('base-end').value;
-      if (bEnd && !sReading.endsWith(bEnd)) return false;
-
       const bWild = document.getElementById('base-wild').value;
       if (bWild) {
         const pattern = new RegExp('^' + bWild.replace(/\?/g, '.') + '$');
         if (!pattern.test(sReading)) return false;
       }
 
-      if (onlyGeneral && isGeneral !== "一般的") return false;
+      if (onlyGeneral && isGen !== "一般的") return false;
       if (exCats.some(cat => sAttr.includes(cat))) return false;
       if (exVerb && sAttr.includes("動詞")) return false;
 
-      // 動的条件
       const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
       for (const dRow of dynamicRows) {
         const type = dRow.dataset.type;
@@ -256,8 +268,7 @@ async function doSearch() {
         if (!v1 && type !== 'replace') continue;
 
         if (type === 'n-pos') {
-          const pos = parseInt(v1) - 1;
-          if (sReading[pos] !== v2) return false;
+          if (sReading[parseInt(v1)-1] !== v2) return false;
         }
         else if (type === 'contains-n') {
           const count = (sReading.split(v1).length - 1);
@@ -265,40 +276,24 @@ async function doSearch() {
           const targetNum = parseInt(v2);
           if (op === 'eq' && count !== targetNum) return false;
           if (op === 'ge' && count < targetNum) return false;
+          if (op === 'le' && count > targetNum) return false;
         }
-        else if (type === 'seq') {
-          if (!sReading.includes(v1)) return false;
-        }
-        else if (type === 'rhyme-full') {
-          if (sBoin !== v1) return false;
-        }
-        else if (type === 'rhyme-end') {
-          if (!sBoin.endsWith(v1)) return false;
-        }
+        else if (type === 'seq' && !sReading.includes(v1)) return false;
+        else if (type === 'rhyme-full' && sBoin !== v1) return false;
+        else if (type === 'rhyme-end' && !sBoin.endsWith(v1)) return false;
         else if (type === 'all-in') {
-          const required = getCharCounts(v1);
+          const req = getCharCounts(v1);
           const target = getCharCounts(sReading);
-          for (const char in required) {
-            if ((target[char] || 0) < required[char]) return false;
-          }
+          for (const c in req) { if ((target[c]||0) < req[c]) return false; }
         }
-        else if (type === 'only') {
-          const pattern = new RegExp('^[' + v1 + ']+$');
-          if (!pattern.test(sReading)) return false;
-        }
+        else if (type === 'only' && !(new RegExp('^[' + v1 + ']+$')).test(sReading)) return false;
         else if (type === 'excl') {
-          for (const char of v1) {
-            if (sReading.includes(char)) return false;
-          }
+          for (const c of v1) { if (sReading.includes(c)) return false; }
         }
         else if (type === 'replace') {
-          // v1をv2に置換して一致するか（読みそのものと比較）
-          // ※この条件は「特定の語との一致」をみる場合に有効
-          const replaced = sReading.split(v1).join(v2 || "");
-          // ここでは「置換して別のリスト内単語になるか」ではなく「特定の入力と一致するか」等のロジックが必要なため、
-          // 汎用的に「置換結果に特定の文字列が含まれるか」等のチェックを想定
-          // 今回は単に「置換が実行可能か（含まれているか）」を確認
           if (!sReading.includes(v1)) return false;
+          const replaced = sReading.split(v1).join(v2 || "");
+          if (!allReadings.has(replaced)) return false;
         }
       }
       return true;
@@ -313,7 +308,7 @@ async function doSearch() {
         <td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td>
       </tr>`).join("");
   } catch (err) {
-    status.innerText = "エラー発生: " + err;
+    status.innerText = "エラー: " + err;
   }
 }
 </script>
