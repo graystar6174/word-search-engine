@@ -125,7 +125,7 @@ const COND_MASTER = [
   { val: "all-in", text: "任意の文字を全て含む", singleton: true },
   { val: "only", text: "任意の文字で構成", singleton: true },
   { val: "excl", text: "任意の文字を除外", singleton: true },
-  { val: "replace", text: "入力欄 → 入力欄 に置換しても成立", singleton: false }
+  { val: "replace", text: "文字列を置換しても成立", singleton: false }
 ];
 
 window.onload = () => {
@@ -183,7 +183,7 @@ function addNewField(val) {
   if(val==='all-in') h = `全て含む：<input type="text" class="val1" style="width:150px">`;
   if(val==='only') h = `構成文字：<input type="text" class="val1" style="width:150px">`;
   if(val==='excl') h = `除外文字：<input type="text" class="val1" style="width:150px">`;
-  if(val==='replace') h = `<input type="text" class="val1" style="width:70px" placeholder="おか"> → <input type="text" class="val2" style="width:70px" placeholder="つき"> に置換して成立`;
+  if(val==='replace') h = `<input type="text" class="val1" style="width:70px"> → <input type="text" class="val2" style="width:70px"> に置換して成立`;
   
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this, '${val}', '${master.group || ""}')">×</button>`;
   container.appendChild(row);
