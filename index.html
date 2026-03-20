@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta name="google-site-verification" content="2uCXg4U283v8PYImBRpU0Ouqh-fhVO3d5na3XFvv_5M" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>集い用検索エンジンver.2</title>
+  <title>集い用検索エンジンver.2 (子音分割対応)</title>
   <style>
     :root { 
       --primary: #90caf9; 
@@ -16,83 +15,57 @@
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
     .container { max-width: 1100px; margin: 0 auto; flex: 1; width: 100%; }
     .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 2px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
-    
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
     .panel-title { font-size: 1rem; font-weight: bold; color: var(--primary-dark); }
     .toggle-btn { background: var(--primary); color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    
     #search-summary { display: none; cursor: pointer; padding: 10px; background: #f0f7ff; border-radius: 8px; border: 1px dashed var(--primary); }
     .summary-item { display: inline-block; background: white; border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.85rem; color: #666; }
-
     .grid { display: flex; flex-wrap: wrap; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
     label { font-size: 0.75rem; color: #666; margin-bottom: 2px; font-weight: bold; }
-    
     input, select { padding: 8px; border: 2px solid var(--border); border-radius: 6px; outline: none; font-size: 0.9rem; color: var(--text); }
     #base-len, #base-start, #base-end { width: 60px; } 
     #base-wild { width: 140px; }
     input:disabled { background-color: #f8f8f8; cursor: not-allowed; color: #ccc; }
-
-    #dynamic-fields { margin-bottom: 15px; }
     .cond-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; position: relative; }
     .btn-remove { background: #fff0f0; color: #ff8080; border: 1px solid #ffdada; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
-
     .kana-panel { display: none; position: absolute; z-index: 2000; background: white; border: 2px solid var(--primary); border-radius: 8px; padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
     .kana-grid { display: flex; flex-direction: row-reverse; gap: 6px; }
     .kana-col { display: flex; flex-direction: column; gap: 6px; }
     .kana-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid #eee; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
     .kana-btn.selected { background: var(--primary); color: white; border-color: var(--primary-dark); }
     .kana-btn.empty { visibility: hidden; pointer-events: none; }
-
     .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; font-weight: bold; }
     .page-btn { background: white; border: 2px solid var(--primary); color: var(--primary-dark); padding: 6px 18px; border-radius: 20px; cursor: pointer; transition: 0.2s; }
     .page-btn:hover:not(:disabled) { background: var(--primary); color: white; }
     .page-btn:disabled { border-color: #eee; color: #ccc; cursor: not-allowed; }
-
     .button-area { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #eee; padding-top: 15px; }
     .btn-search { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 0 var(--primary-dark); }
-    
     .filter-options { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #666; align-items: center; }
     .filter-group { display: flex; align-items: center; gap: 4px; }
-
     .custom-select-trigger { background: white; border: 2px dashed var(--primary); color: var(--primary-dark); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: bold; display: inline-block; }
-    .custom-options { 
-      display: none; position: absolute; background: white; border: 2px solid var(--border); border-radius: 8px; 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; 
-      max-height: 250px; overflow-y: auto; 
-    }
+    .custom-options { display: none; position: absolute; background: white; border: 2px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; max-height: 250px; overflow-y: auto; }
     .custom-options div { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
     .custom-options div:hover { background: #f0faff; }
     .custom-options.show { display: block; }
-
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
     th { background: var(--primary); color: white; padding: 12px 10px; text-align: left; }
     td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; }
     .word-link { color: var(--primary-dark); font-weight: bold; text-decoration: underline; }
-
     .controls-fixed { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
-    .scroll-btn { 
-      background: var(--primary); color: white; border: none; padding: 12px; border-radius: 50px; 
-      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: bold; font-size: 0.8rem;
-      display: flex; flex-direction: column; align-items: center; min-width: 100px; transition: 0.2s;
-    }
+    .scroll-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: bold; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; min-width: 100px; transition: 0.2s; }
     .scroll-btn:hover { background: var(--primary-dark); transform: translateY(-2px); }
   </style>
 </head>
 <body>
-  <div id="kana-panel" class="kana-panel">
-    <div class="kana-grid" id="kana-grid-content"></div>
-  </div>
-
+  <div id="kana-panel" class="kana-panel"><div class="kana-grid" id="kana-grid-content"></div></div>
   <div class="container">
     <h1 style="color:var(--primary-dark); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">集い用検索エンジンver.2</h1>
-    
     <div class="search-panel" id="panel">
       <div class="panel-header">
         <span class="panel-title">検索条件設定</span>
         <button class="toggle-btn" id="toggle-btn" onclick="togglePanel()">−</button>
       </div>
-
       <div id="panel-content">
         <div class="grid">
           <div class="input-group"><label>文字数</label><input type="number" id="base-len"></div>
@@ -105,7 +78,6 @@
           <div class="custom-select-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
           <div class="custom-options" id="custom-options"></div>
         </div>
-
         <div class="button-area">
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
           <div class="filter-options">
@@ -121,7 +93,6 @@
       </div>
       <div id="search-summary" onclick="togglePanel()"></div>
     </div>
-    
     <div class="status-bar" style="display:flex; justify-content:space-between; align-items:center;">
       <p id="status" style="margin:0; font-weight:bold; color:#888;">条件を入力してください。</p>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -132,7 +103,6 @@
         </select>
       </div>
     </div>
-
     <div id="pagination-top" class="pagination"></div>
     <table>
       <thead><tr><th style="width:10%">文字数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
@@ -140,14 +110,10 @@
     </table>
     <div id="pagination-bottom" class="pagination"></div>
   </div>
-
   <div class="controls-fixed">
     <button class="scroll-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">▲ TOP</button>
     <button class="scroll-btn" onclick="window.scrollBy({top: 1200, behavior: 'smooth'})">▼ 一気に下へ</button>
   </div>
-
-  <footer id="footer-area" style="padding:30px; text-align:center; color:#ccc; font-size:0.8rem;"></footer>
-
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
@@ -156,39 +122,24 @@ let activeInput = null;
 let currentPage = 1;
 const pageSize = 100;
 
-// 母音変換マップ（検索時の入力変換用）
-const BOIN_CONV_MAP = {
-  'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'a','き':'i','く':'u','け':'e','こ':'o','さ':'a','し':'i','す':'u','せ':'e','そ':'o','た':'a','ち':'i','つ':'u','て':'e','と':'o','な':'a','ni':'i','ぬ':'u','ね':'e','の':'o','は':'a','ひ':'i','ふ':'u','へ':'e','ほ':'o','ま':'a','み':'i','む':'u','め':'e','も':'o','や':'a','ゆ':'u','よ':'o','ら':'a','り':'i','る':'u','れ':'e','ろ':'o','わ':'a','を':'o','ん':'n','っ':'t','が':'a','ぎ':'i','ぐ':'u','げ':'e','ご':'o','ざ':'a','じ':'i','ず':'u','ぜ':'e','ぞ':'o','だ':'a','ぢ':'i','づ':'u','で':'e','ど':'o','ば':'a','び':'i','ぶ':'u','べ':'e','ぼ':'o','ぱ':'a','ぴ':'i','ぷ':'u','ぺ':'e','ぽ':'o','ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'a','ゅ':'u','ょ':'o'
-};
+const ROMAN_MAP = {'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko','さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to','な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho','ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo','ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro','わ':'wa','を':'wo','ん':'n','が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo','だ':'da','ぢ':'di','づ':'du','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo','ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po','ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'ts'};
 
 const KANA_ORDER = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
-const KANA_MAP_DATA = [
-  ['あ','い','う','え','お'], ['か','き','く','け','こ'], ['さ','し','す','せ','そ'], ['た','ち','つ','て','と'], ['な','に','ぬ','ね','の'], ['は','ひ','ふ','へ','ほ'], ['ま','み','む','め','も'], 
-  ['や','','ゆ','','よ'], 
-  ['ら','り','る','れ','ろ'], 
-  ['わ','','','','を'], 
-  ['ん','','','','']
-];
+const KANA_MAP_DATA = [['あ','い','う','え','お'],['か','き','く','け','こ'],['さ','し','す','せ','そ'],['た','ち','つ','て','と'],['な','に','ぬ','ね','の'],['は','ひ','ふ','へ','ほ'],['ま','み','む','め','も'],['や','','ゆ','','よ'],['ら','り','る','れ','ろ'],['わ','','','','を'],['ん','','','','']];
 
 function initKanaPanel() {
   const grid = document.getElementById('kana-grid-content');
   KANA_MAP_DATA.forEach(col => {
-    const colDiv = document.createElement('div');
-    colDiv.className = 'kana-col';
+    const colDiv = document.createElement('div'); colDiv.className = 'kana-col';
     col.forEach(char => {
-      const btn = document.createElement('div');
-      btn.className = char === '' ? 'kana-btn empty' : 'kana-btn';
+      const btn = document.createElement('div'); btn.className = char === '' ? 'kana-btn empty' : 'kana-btn';
       if (char !== '') {
-        btn.textContent = char;
-        btn.dataset.char = char;
+        btn.textContent = char; btn.dataset.char = char;
         btn.onclick = (e) => {
-          e.stopPropagation();
-          let vals = activeInput.value.split('');
-          if (vals.includes(char)) vals = vals.filter(c => c !== char);
-          else vals.push(char);
+          e.stopPropagation(); let vals = activeInput.value.split('');
+          if (vals.includes(char)) vals = vals.filter(c => c !== char); else vals.push(char);
           activeInput.value = vals.sort((a,b) => KANA_ORDER.indexOf(a) - KANA_ORDER.indexOf(b)).join('');
-          updatePanelSelection();
-          activeInput.dispatchEvent(new Event('input'));
+          updatePanelSelection(); activeInput.dispatchEvent(new Event('input'));
         };
       }
       colDiv.appendChild(btn);
@@ -205,12 +156,9 @@ function updatePanelSelection() {
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('kana-panel');
   if (e.target.classList.contains('kana-trigger')) {
-    activeInput = e.target;
-    const rect = e.target.getBoundingClientRect();
-    panel.style.top = (window.scrollY + rect.bottom + 5) + 'px';
-    panel.style.left = (window.scrollX + rect.left) + 'px';
-    panel.style.display = 'block';
-    updatePanelSelection();
+    activeInput = e.target; const rect = e.target.getBoundingClientRect();
+    panel.style.top = (window.scrollY + rect.bottom + 5) + 'px'; panel.style.left = (window.scrollX + rect.left) + 'px';
+    panel.style.display = 'block'; updatePanelSelection();
   } else if (!panel.contains(e.target)) { panel.style.display = 'none'; }
   if (!e.target.closest('.custom-select-container')) document.getElementById('custom-options').classList.remove('show');
 });
@@ -236,21 +184,16 @@ const COND_MASTER = [
 ];
 
 window.onload = () => { initKanaPanel(); updateDropdown(); };
-
 function toggleDropdown(e) { e.stopPropagation(); document.getElementById('custom-options').classList.toggle('show'); }
-
 function togglePanel() {
   const content = document.getElementById('panel-content'), summary = document.getElementById('search-summary'), btn = document.getElementById('toggle-btn');
   const isHidden = content.style.display === 'none';
-  content.style.display = isHidden ? 'block' : 'none';
-  summary.style.display = isHidden ? 'none' : 'block';
-  btn.innerText = isHidden ? '−' : '＋';
-  if (!isHidden) updateSummary();
+  content.style.display = isHidden ? 'block' : 'none'; summary.style.display = isHidden ? 'none' : 'block';
+  btn.innerText = isHidden ? '−' : '＋'; if (!isHidden) updateSummary();
 }
 
 function updateSummary() {
-  const b = (id) => document.getElementById(id).value;
-  const items = [];
+  const b = (id) => document.getElementById(id).value; const items = [];
   if(b('base-len')) items.push(`${b('base-len')}文字`);
   if(b('base-wild')) items.push(`パターン:${b('base-wild')}`);
   if(document.getElementById('filter-general').checked) items.push("一般的のみ");
@@ -261,8 +204,7 @@ function addNewField(val) {
   const master = COND_MASTER.find(m => m.val === val);
   if (master.singleton) activeConditions.add(val);
   if (master.group) activeConditions.add(master.group);
-  const row = document.createElement('div');
-  row.className = 'cond-row'; row.dataset.type = val;
+  const row = document.createElement('div'); row.className = 'cond-row'; row.dataset.type = val;
   let h = '';
   if(val==='n-pos') h = `<input type="number" class="val1" style="width:40px"> 文字目が <input type="text" class="val2" style="width:50px">`;
   else if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2" style="width:40px"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
@@ -274,63 +216,59 @@ function addNewField(val) {
   else if(val==='excl') h = `除外文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
   else if(val==='replace') h = `<input type="text" class="val1" style="width:70px"> → <input type="text" class="val2" style="width:70px"> に置換`;
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this, '${val}', '${master.group || ""}')">×</button>`;
-  document.getElementById('dynamic-fields').appendChild(row);
-  updateDropdown();
+  document.getElementById('dynamic-fields').appendChild(row); updateDropdown();
 }
 
-function removeField(btn, val, group) {
-  btn.parentNode.remove();
-  activeConditions.delete(val);
-  if (group) activeConditions.delete(group);
-  updateDropdown();
-}
+function removeField(btn, val, group) { btn.parentNode.remove(); activeConditions.delete(val); if (group) activeConditions.delete(group); updateDropdown(); }
 
 function updateDropdown() {
-  const div = document.getElementById('custom-options');
-  div.innerHTML = '';
+  const div = document.getElementById('custom-options'); div.innerHTML = '';
   COND_MASTER.forEach(m => {
     if ((m.singleton && activeConditions.has(m.val)) || (m.group && activeConditions.has(m.group))) return;
-    const opt = document.createElement('div');
-    opt.textContent = m.text;
+    const opt = document.createElement('div'); opt.textContent = m.text;
     opt.onclick = () => { addNewField(m.val); div.classList.remove('show'); };
     div.appendChild(opt);
   });
 }
 
-// 母音検索用：利用者の入力をアルファベット韻に変換
-function convToBoin(str) {
+/**
+ * 読みからファイル特定用のキー(2文字ローマ字)を生成
+ */
+function getTargetKey(str) {
+  if (!str) return null;
+  let head = str.slice(0, 2);
   let res = "";
-  const chars = str.split("");
-  for (let i = 0; i < chars.length; i++) {
-    let char = chars[i];
-    let nextChar = chars[i + 1];
-    if (nextChar && "ぁぃぅぇぉゃゅょ".includes(nextChar)) {
-      res += BOIN_CONV_MAP[nextChar] || "?";
-      i++; continue;
-    }
-    if (char === "ー" && res.length > 0) {
-      const prev = res[res.length - 1];
-      res += (prev === 'n' || prev === 't') ? "ー" : prev;
-      continue;
-    }
-    res += BOIN_CONV_MAP[char] || char;
+  for (let i = 0; i < head.length; i++) {
+    let char = head[i], next = head[i+1];
+    if (char === "ー" && res.length > 0) { res += res.slice(-1); continue; }
+    if (next && "ゃゅょぁぃぅぇぉ".includes(next)) {
+      res += (ROMAN_MAP[char] ? ROMAN_MAP[char].slice(0, -1) : "") + ROMAN_MAP[next]; i++;
+    } else { res += (ROMAN_MAP[char] || ""); }
   }
-  return res;
+  return res.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+// 母音検索用変換
+function convToBoin(str) {
+  const bMap = {'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'a','き':'i','く':'u','け':'e','こ':'o','さ':'a','し':'i','す':'u','せ':'e','そ':'o','た':'a','ち':'i','つ':'u','て':'e','と':'o','な':'a','に':'i','ぬ':'u','ね':'e','の':'o','は':'a','ひ':'i','ふ':'u','へ':'e','ほ':'o','ま':'a','み':'i','む':'u','め':'e','も':'o','や':'a','ゆ':'u','よ':'o','ら':'a','り':'i','る':'u','れ':'e','ろ':'o','わ':'a','を':'o','ん':'n','っ':'t','が':'a','ぎ':'i','ぐ':'u','げ':'e','ご':'o','ざ':'a','じ':'i','ず':'u','ぜ':'e','ぞ':'o','だ':'a','ぢ':'i','づ':'u','で':'e','ど':'o','ば':'a','び':'i','ぶ':'u','べ':'e','ぼ':'o','ぱ':'a','ぴ':'i','ぷ':'u','ぺ':'e','ぽ':'o','ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'a','ゅ':'u','ょ':'o'};
+  let res = []; let chars = str.split("");
+  for (let i = 0; i < chars.length; i++) {
+    let char = chars[i], next = chars[i+1];
+    if (next && "ぁぃぅぇぉゃゅょ".includes(next)) { res.push(bMap[next] || "?"); i++; continue; }
+    if (char === "ー" && res.length > 0) { let p = res[res.length-1]; res.push((p==='n'||p==='t')?"ー":p); continue; }
+    res.push(bMap[char] || char);
+  }
+  return res.join("");
 }
 
 function normalizeReading(str) {
-  const seionMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
+  const sMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
   let res = "";
   for (let i = 0; i < str.length; i++) {
     if (str[i] === "ー" && i > 0) {
-      // 韻ではなく文字としての正規化なので、母音変換マップを利用
-      const prevChar = str[i-1];
-      const prevBoin = BOIN_CONV_MAP[prevChar];
-      const reverseMap = {'a':'あ','i':'い','u':'う','e':'え','o':'お'};
-      res += reverseMap[prevBoin] || "ー";
-    } else {
-      res += seionMap[str[i]] || str[i];
-    }
+      const b = convToBoin(str[i-1]); const rMap = {'a':'あ','i':'い','u':'う','e':'え','o':'お'};
+      res += rMap[b] || "ー";
+    } else { res += sMap[str[i]] || str[i]; }
   }
   return res;
 }
@@ -352,26 +290,42 @@ function renderTable() {
   document.getElementById("results").innerHTML = pageData.map(r => `<tr><td>${r[4]}</td><td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td><td>${r[1]}</td><td>${r[2] || ""}</td></tr>`).join("");
   document.getElementById('page-display').innerText = `${currentFilteredData.length}件 (${currentPage} / ${totalPages} ページ)`;
   const pagin = `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(-1)">前へ</button><span style="margin:0 10px">${currentPage} / ${totalPages}</span><button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(1)">次へ</button>`;
-  document.getElementById('pagination-top').innerHTML = pagin;
-  document.getElementById('pagination-bottom').innerHTML = pagin;
+  document.getElementById('pagination-top').innerHTML = pagin; document.getElementById('pagination-bottom').innerHTML = pagin;
 }
 
 function changePage(step) { currentPage += step; window.scrollTo(0, 0); renderTable(); }
 
 async function doSearch() {
-  const status = document.getElementById("status");
-  status.innerText = "データ読み込み中...";
+  const status = document.getElementById("status"); status.innerText = "通信中...";
   try {
-    const resIdx = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
-    const indexData = await resIdx.json();
-    const chunkResults = await Promise.all(indexData.files.map(f => fetch(`${REPO_URL}/${f}?t=${Date.now()}`).then(r => r.json())));
+    const bStart = document.getElementById('base-start').value;
+    const bWild = document.getElementById('base-wild').value;
+    const startChar = bStart ? bStart : (bWild ? bWild.slice(0, 2).replace(/[?？]/g, "") : "");
+    
+    // 【重要】読みの先頭が判明している場合のみ、そのファイルだけを狙い撃つ
+    let targetFiles = [];
+    const idxRes = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
+    const indexData = await idxRes.json();
+    
+    const targetKey = getTargetKey(startChar);
+    if (targetKey && targetKey.length >= 1) {
+      targetFiles = indexData.files.filter(f => f.includes(`chunks/${targetKey}`));
+      status.innerText = `特定ファイルを読込中 (${targetKey})...`;
+    } 
+    
+    // 特定できない場合は全件読込
+    if (targetFiles.length === 0) {
+      targetFiles = indexData.files;
+      status.innerText = "全データを走査中...";
+    }
+
+    const chunkResults = await Promise.all(targetFiles.map(f => fetch(`${REPO_URL}/${f}?t=${Date.now()}`).then(r => r.json())));
     const allData = chunkResults.flat();
     const allReadings = new Set(allData.map(d => String(d[1])));
-    const baseLen = document.getElementById('base-wild').value ? null : document.getElementById('base-len').value;
-    const baseStart = document.getElementById('base-start').value, baseEnd = document.getElementById('base-end').value, baseWild = document.getElementById('base-wild').value;
+
+    const baseLen = bWild ? null : document.getElementById('base-len').value;
+    const baseEnd = document.getElementById('base-end').value;
     const onlyGen = document.getElementById('filter-general').checked;
-    
-    // 除外フラグの軽量ID化
     const exIds = [];
     if(document.getElementById('ex-proper').checked) exIds.push("P");
     if(document.getElementById('ex-person').checked) exIds.push("H");
@@ -380,15 +334,12 @@ async function doSearch() {
     const exVerb = document.getElementById('ex-verb').checked;
 
     currentFilteredData = allData.filter(row => {
-      // row構造 [0:単語, 1:読み, 2:備考, 3:韻, 4:文字数, 5:一般的(G/M), 6:属性(ID), 7:活用]
       const [word, reading, note, boin, len, isGen, attr] = row;
       const sRead = String(reading || ""), sAttr = String(attr || "");
       if (baseLen && len != baseLen) return false;
-      if (baseStart && !sRead.startsWith(baseStart)) return false;
+      if (bStart && !sRead.startsWith(bStart)) return false;
       if (baseEnd && !sRead.endsWith(baseEnd)) return false;
-      if (baseWild && (sRead.length !== baseWild.length || !(new RegExp('^' + baseWild.replace(/[?？]/g, '.') + '$')).test(sRead))) return false;
-      
-      // 軽量化フラグ判定
+      if (bWild && (sRead.length !== bWild.length || !(new RegExp('^' + bWild.replace(/[?？]/g, '.') + '$')).test(sRead))) return false;
       if (onlyGen && isGen !== "G") return false;
       if (exIds.some(id => sAttr === id) || (exVerb && sAttr === "V")) return false;
 
@@ -400,11 +351,8 @@ async function doSearch() {
           if ((op === 'eq' && count !== target) || (op === 'ge' && count < target) || (op === 'le' && count > target)) return false;
         }
         if (type === 'seq' && !sRead.includes(v1)) return false;
-        
-        // 韻の判定：v1(日本語)を軽量アルファベットに変換してから比較
         if (type === 'rhyme-full' && String(boin) !== convToBoin(v1)) return false;
         if (type === 'rhyme-end' && !String(boin).endsWith(convToBoin(v1))) return false;
-        
         if (type === 'all-in' || type === 'only' || type === 'excl') {
           const norm = normalizeReading(sRead);
           if (type === 'all-in') { for(let c of v1) if(!norm.includes(c)) return false; }
@@ -416,7 +364,7 @@ async function doSearch() {
       return true;
     });
     status.innerText = currentFilteredData.length + " 件ヒット"; applySortAndRender();
-  } catch (err) { status.innerText = "エラー: " + err; }
+  } catch (err) { status.innerText = "エラー: " + err; console.error(err); }
 }
 </script>
 </body>
