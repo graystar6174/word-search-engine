@@ -37,8 +37,6 @@
     .kana-panel { 
       display: none; 
       position: absolute; 
-      top: 100%; 
-      left: 0; 
       z-index: 2000; 
       background: white; 
       border: 1px solid var(--primary); 
@@ -53,8 +51,10 @@
       display: flex; align-items: center; justify-content: center; 
       border: 1px solid #eef7fe; background: white; 
       border-radius: 4px; cursor: pointer; font-size: 0.9rem; 
+      transition: all 0.2s;
     }
-    .kana-btn:hover { background: var(--primary); color: white; }
+    .kana-btn:hover { border-color: var(--primary); }
+    .kana-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
     .kana-btn.empty { border: none; cursor: default; visibility: hidden; }
 
     .button-area { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #eee; padding-top: 15px; }
@@ -195,10 +195,11 @@
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
 let currentFilteredData = [];
-let activeInput = null; // 現在50音入力中の要素
+let activeInput = null;
 
-// 50音データの定義（右から左、縦並び）
-const KANA_MAP = [
+const KANA_ORDER = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+
+const KANA_MAP_DATA = [
   ['あ','い','う','え','お'],
   ['か','き','く','け','こ'],
   ['さ','し','す','せ','そ'],
@@ -214,7 +215,7 @@ const KANA_MAP = [
 
 function initKanaPanel() {
   const grid = document.getElementById('kana-grid-content');
-  KANA_MAP.forEach(col => {
+  KANA_MAP_DATA.forEach(col => {
     const colDiv = document.createElement('div');
     colDiv.className = 'kana-col';
     col.forEach(char => {
@@ -224,12 +225,27 @@ function initKanaPanel() {
       } else {
         btn.className = 'kana-btn';
         btn.textContent = char;
+        btn.dataset.char = char;
         btn.onclick = (e) => {
           e.stopPropagation();
-          if (activeInput) {
-            activeInput.value += char;
-            activeInput.dispatchEvent(new Event('input'));
+          if (!activeInput) return;
+          
+          let currentVal = activeInput.value;
+          if (currentVal.includes(char)) {
+            // 既に含まれていれば削除
+            currentVal = currentVal.replace(char, '');
+          } else {
+            // 含まれていなければ追加
+            currentVal += char;
           }
+          
+          // 五十音順にソート
+          activeInput.value = currentVal.split('').sort((a, b) => {
+            return KANA_ORDER.indexOf(a) - KANA_ORDER.indexOf(b);
+          }).join('');
+          
+          updatePanelSelection();
+          activeInput.dispatchEvent(new Event('input'));
         };
       }
       colDiv.appendChild(btn);
@@ -237,6 +253,37 @@ function initKanaPanel() {
     grid.appendChild(colDiv);
   });
 }
+
+function updatePanelSelection() {
+  if (!activeInput) return;
+  const currentChars = activeInput.value;
+  document.querySelectorAll('.kana-btn:not(.empty)').forEach(btn => {
+    if (currentChars.includes(btn.dataset.char)) {
+      btn.classList.add('selected');
+    } else {
+      btn.classList.remove('selected');
+    }
+  });
+}
+
+// 50音パネル表示管理
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('kana-panel');
+  if (e.target.classList.contains('kana-trigger')) {
+    activeInput = e.target;
+    const rect = e.target.getBoundingClientRect();
+    panel.style.top = (window.scrollY + rect.bottom + 5) + 'px';
+    panel.style.left = (window.scrollX + rect.left) + 'px';
+    panel.style.display = 'block';
+    updatePanelSelection();
+  } else if (!panel.contains(e.target)) {
+    panel.style.display = 'none';
+  }
+  
+  if (!e.target.closest('.custom-select-container')) {
+    document.getElementById('custom-options').classList.remove('show');
+  }
+});
 
 function handleWildInput(el) {
   const lenInput = document.getElementById('base-len');
@@ -270,24 +317,6 @@ window.onload = () => {
   updateDropdown();
   document.getElementById('footer-area').innerHTML = `<h3>備考</h3><p>最新のデータで検索を行います。ソートは常に五十音順（ーを母音として扱う）を基準としています。</p>`;
 };
-
-// 50音パネル表示管理
-document.addEventListener('click', (e) => {
-  const panel = document.getElementById('kana-panel');
-  if (e.target.classList.contains('kana-trigger')) {
-    activeInput = e.target;
-    const rect = e.target.getBoundingClientRect();
-    panel.style.top = (window.scrollY + rect.bottom + 5) + 'px';
-    panel.style.left = (window.scrollX + rect.left) + 'px';
-    panel.style.display = 'block';
-  } else if (!panel.contains(e.target)) {
-    panel.style.display = 'none';
-  }
-  
-  if (!e.target.closest('.custom-select-container')) {
-    document.getElementById('custom-options').classList.remove('show');
-  }
-});
 
 function toggleDropdown(event) {
   event.stopPropagation();
@@ -363,42 +392,20 @@ function updateDropdown() {
   });
 }
 
-// 読みの清音化・母音化（ーを直前の母音にする）
 function normalizeReading(str) {
   if (!str) return "";
-  const map = { 
-    'あ':'あ','い':'い','う':'う','え':'え','お':'お',
-    'か':'あ','き':'い','く':'う','け':'え','こ':'お','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お',
-    'さ':'あ','し':'い','す':'う','せ':'え','そ':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お',
-    'た':'あ','ち':'い','つ':'う','て':'え','と':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','っ':'つ',
-    'な':'あ','に':'い','ぬ':'う','ね':'え','の':'お',
-    'は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お',
-    'ま':'あ','み':'い','む':'う','め':'え','も':'お',
-    'や':'あ','ゆ':'う','よ':'お','ゃ':'あ','ゅ':'う','ょ':'お',
-    'ら':'あ','り':'い','る':'う','れ':'え','ろ':'お',
-    'わ':'あ','を':'お','ん':'ん'
-  };
-  // 清音化（が→か）
-  const toSeion = (c) => {
-    const sMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
-    return sMap[c] || c;
-  };
+  const boinMap = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
+  const seionMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
   
   let res = "";
   for (let i = 0; i < str.length; i++) {
     if (str[i] === "ー" && i > 0) {
-      res += map[str[i-1]] || "ー";
+      res += boinMap[str[i-1]] || "ー";
     } else {
-      res += toSeion(str[i]);
+      res += seionMap[str[i]] || str[i];
     }
   }
   return res;
-}
-
-function getCharCounts(str) {
-  const counts = {};
-  for (const char of str) { counts[char] = (counts[char] || 0) + 1; }
-  return counts;
 }
 
 function applySortAndRender() {
@@ -492,17 +499,15 @@ async function doSearch() {
         else if (type === 'seq' && !sReading.includes(v1)) return false;
         else if (type === 'rhyme-full' && sBoin !== v1) return false;
         else if (type === 'rhyme-end' && !sBoin.endsWith(v1)) return false;
-        else if (type === 'all-in') {
+        else if (type === 'all-in' || type === 'only' || type === 'excl') {
           const normRead = normalizeReading(sReading);
-          for (const char of v1) { if (!normRead.includes(char)) return false; }
-        }
-        else if (type === 'only') {
-          const normRead = normalizeReading(sReading);
-          for (const char of normRead) { if (!v1.includes(char)) return false; }
-        }
-        else if (type === 'excl') { 
-          const normRead = normalizeReading(sReading);
-          for (const char of v1) { if (normRead.includes(char)) return false; } 
+          if (type === 'all-in') {
+            for (const char of v1) { if (!normRead.includes(char)) return false; }
+          } else if (type === 'only') {
+            for (const char of normRead) { if (!v1.includes(char)) return false; }
+          } else if (type === 'excl') {
+            for (const char of v1) { if (normRead.includes(char)) return false; }
+          }
         }
         else if (type === 'replace') {
           if (!sReading.includes(v1)) return false;
