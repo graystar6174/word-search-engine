@@ -23,6 +23,8 @@
     
     #base-len, #base-start, #base-end { width: 50px; } 
     #base-wild { width: 120px; }
+    /* 無効化時のスタイル */
+    input:disabled { background-color: #f0f0f0; cursor: not-allowed; color: #ccc; }
 
     #dynamic-fields { margin-bottom: 15px; }
     .cond-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; }
@@ -109,7 +111,7 @@
           <div class="input-group"><label>文字数</label><input type="number" id="base-len"></div>
           <div class="input-group"><label>開始</label><input type="text" id="base-start"></div>
           <div class="input-group"><label>終了</label><input type="text" id="base-end"></div>
-          <div class="input-group"><label>？検索</label><input type="text" id="base-wild"></div>
+          <div class="input-group"><label>？検索</label><input type="text" id="base-wild" oninput="handleWildInput(this)"></div>
         </div>
 
         <div id="dynamic-fields"></div>
@@ -166,6 +168,17 @@ const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
 let currentFilteredData = [];
 
+// 「？検索」入力時に「文字数」を無効化する
+function handleWildInput(el) {
+  const lenInput = document.getElementById('base-len');
+  if (el.value.trim() !== "") {
+    lenInput.disabled = true;
+    lenInput.value = ""; // 入力値をクリア
+  } else {
+    lenInput.disabled = false;
+  }
+}
+
 function syncProper(master) {
   const subs = document.querySelectorAll('.sub-ex');
   subs.forEach(s => s.checked = master.checked);
@@ -212,6 +225,7 @@ function updateSummary() {
   const items = [];
   const b = (id) => document.getElementById(id).value;
   if(b('base-len')) items.push(`${b('base-len')}文字`);
+  if(b('base-wild')) items.push(`パターン:${b('base-wild')}`);
   if(document.getElementById('filter-general').checked) items.push("一般的のみ");
   document.getElementById('search-summary').innerHTML = items.length > 0 
     ? items.map(text => `<span class="summary-item">${text}</span>`).join('') 
@@ -306,12 +320,15 @@ function applySortAndRender() {
 
 async function doSearch() {
   const status = document.getElementById("status");
-  const baseLen = document.getElementById('base-len').value;
+  const baseLenInput = document.getElementById('base-len');
   const baseStart = document.getElementById('base-start').value;
   const baseEnd = document.getElementById('base-end').value;
   let baseWild = document.getElementById('base-wild').value;
   const dynamicRows = document.querySelectorAll('.cond-row');
   
+  // ？検索がある場合は、文字数指定を内部的に無視する
+  const baseLen = baseWild ? null : baseLenInput.value;
+
   if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
     status.innerText = "検索条件を入力してください。";
     document.getElementById("results").innerHTML = "";
@@ -341,15 +358,18 @@ async function doSearch() {
       const sAttr = String(attr || "");
       const sBoin = String(boin || "");
 
+      // 文字数チェック：？検索がない場合のみ適用
       if (baseLen && len != baseLen) return false;
+      
       if (baseStart && !sReading.startsWith(baseStart)) return false;
       if (baseEnd && !sReading.endsWith(baseEnd)) return false;
       
-      // ?検索（ワイルドカード）のロジック修正
+      // ？検索（ワイルドカード）のロジック
       if (baseWild) {
-        // 全角・半角どちらの「？」も「.」に変換
+        // パターンそのものの長さと単語の長さが一致しない場合は除外
+        if (sReading.length !== baseWild.length) return false;
+        
         let patternStr = baseWild.replace(/[?？]/g, '.');
-        // 他のメタ文字（*など）をエスケープして正規表現を作成
         let pattern = new RegExp('^' + patternStr + '$');
         if (!pattern.test(sReading)) return false;
       }
