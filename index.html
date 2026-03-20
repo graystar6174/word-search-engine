@@ -45,7 +45,6 @@
     .custom-options div:hover { background: #f0f7ff; }
     .custom-options.show { display: block; }
 
-    /* ステータスとソートのレイアウト */
     .status-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px; }
     .sort-control { font-size: 0.85rem; color: #666; display: flex; align-items: center; gap: 5px; }
     #sort-order { padding: 3px 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
@@ -56,6 +55,29 @@
     .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
 
     .description-footer { margin-top: 40px; padding: 30px 20px; background: #fff; border-top: 1px solid var(--border); color: #777; font-size: 0.85rem; line-height: 1.6; }
+
+    /* 右下のフローティングボタン */
+    .scroll-btn {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 15px;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-size: 0.85rem;
+      font-weight: bold;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1.2;
+    }
+    .scroll-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+    .scroll-btn span { font-size: 0.7rem; opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -119,12 +141,16 @@
     </table>
   </div>
 
+  <button class="scroll-btn" onclick="window.scrollBy({top: 4500, behavior: 'smooth'})">
+    ▼ <span>100件下へ</span>
+  </button>
+
   <footer class="description-footer" id="footer-area"></footer>
 
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
-let currentFilteredData = []; // ソート用に結果を保持
+let currentFilteredData = [];
 
 function syncProper(master) {
   const subs = document.querySelectorAll('.sub-ex');
@@ -231,7 +257,6 @@ function getCharCounts(str) {
   return counts;
 }
 
-// 読みの「ー」を母音に変換して正規化（ソート用）
 function normalizeReading(str) {
   if (!str) return "";
   const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
@@ -246,24 +271,15 @@ function normalizeReading(str) {
   return res;
 }
 
-// ソートを適用して再描画
 function applySortAndRender() {
   const order = document.getElementById("sort-order").value;
-  
   currentFilteredData.sort((a, b) => {
-    // 常に五十音順（正規化読み）をベースにする
     const readA = normalizeReading(a[1]);
     const readB = normalizeReading(b[1]);
-    
-    if (order === "len-asc") {
-      if (a[4] !== b[4]) return a[4] - b[4];
-    } else if (order === "len-desc") {
-      if (a[4] !== b[4]) return b[4] - a[4];
-    }
-    
+    if (order === "len-asc") { if (a[4] !== b[4]) return a[4] - b[4]; }
+    else if (order === "len-desc") { if (a[4] !== b[4]) return b[4] - a[4]; }
     return readA.localeCompare(readB, 'ja');
   });
-
   const tbody = document.getElementById("results");
   tbody.innerHTML = currentFilteredData.map(r => `
     <tr>
@@ -277,6 +293,19 @@ function applySortAndRender() {
 async function doSearch() {
   const status = document.getElementById("status");
   
+  // バリデーション: 条件が一つもない場合は中断
+  const baseLen = document.getElementById('base-len').value;
+  const baseStart = document.getElementById('base-start').value;
+  const baseEnd = document.getElementById('base-end').value;
+  const baseWild = document.getElementById('base-wild').value;
+  const dynamicRows = document.querySelectorAll('.cond-row');
+  
+  if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
+    status.innerText = "検索条件を入力してください。";
+    document.getElementById("results").innerHTML = "";
+    return;
+  }
+
   const onlyGeneral = document.getElementById('filter-general').checked;
   const exCats = [];
   if(document.getElementById('ex-proper').checked) exCats.push("固有名詞");
@@ -292,7 +321,6 @@ async function doSearch() {
     const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file}?t=${Date.now()}`).then(r => r.json()));
     const chunkResults = await Promise.all(promises);
     const allData = chunkResults.flat();
-    
     const allReadings = new Set(allData.map(d => String(d[1])));
 
     currentFilteredData = allData.filter(row => {
@@ -301,14 +329,11 @@ async function doSearch() {
       const sAttr = String(attr || "");
       const sBoin = String(boin || "");
 
-      const baseLen = document.getElementById('base-len').value;
       if (baseLen && len != baseLen) return false;
-      if (document.getElementById('base-start').value && !sReading.startsWith(document.getElementById('base-start').value)) return false;
-      if (document.getElementById('base-end').value && !sReading.endsWith(document.getElementById('base-end').value)) return false;
-      
-      const bWild = document.getElementById('base-wild').value;
-      if (bWild) {
-        const pattern = new RegExp('^' + bWild.replace(/\?/g, '.') + '$');
+      if (baseStart && !sReading.startsWith(baseStart)) return false;
+      if (baseEnd && !sReading.endsWith(baseEnd)) return false;
+      if (baseWild) {
+        const pattern = new RegExp('^' + baseWild.replace(/\?/g, '.') + '$');
         if (!pattern.test(sReading)) return false;
       }
 
@@ -316,16 +341,13 @@ async function doSearch() {
       if (exCats.some(cat => sAttr.includes(cat))) return false;
       if (exVerb && sAttr.includes("動詞")) return false;
 
-      const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
       for (const dRow of dynamicRows) {
         const type = dRow.dataset.type;
         const v1 = dRow.querySelector('.val1')?.value;
         const v2 = dRow.querySelector('.val2')?.value;
         if (!v1 && type !== 'replace') continue;
 
-        if (type === 'n-pos') {
-          if (sReading[parseInt(v1)-1] !== v2) return false;
-        }
+        if (type === 'n-pos') { if (sReading[parseInt(v1)-1] !== v2) return false; }
         else if (type === 'contains-n') {
           const count = (sReading.split(v1).length - 1);
           const op = dRow.querySelector('.op').value;
@@ -343,9 +365,7 @@ async function doSearch() {
           for (const c in req) { if ((target[c]||0) < req[c]) return false; }
         }
         else if (type === 'only' && !(new RegExp('^[' + v1 + ']+$')).test(sReading)) return false;
-        else if (type === 'excl') {
-          for (const c of v1) { if (sReading.includes(c)) return false; }
-        }
+        else if (type === 'excl') { for (const c of v1) { if (sReading.includes(c)) return false; } }
         else if (type === 'replace') {
           if (!sReading.includes(v1)) return false;
           const replaced = sReading.split(v1).join(v2 || "");
@@ -356,7 +376,7 @@ async function doSearch() {
     });
 
     status.innerText = currentFilteredData.length + " 件ヒット";
-    applySortAndRender(); // ソートをかけて描画
+    applySortAndRender();
   } catch (err) {
     status.innerText = "エラー: " + err;
   }
