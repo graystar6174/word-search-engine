@@ -41,12 +41,11 @@
     .custom-select-container { position: relative; margin-bottom: 10px; }
     .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; }
     
-    /* プルダウンの修正: 下方向に展開し、溢れる場合はスクロール */
     .custom-options { 
       display: none; 
       position: absolute; 
       left: 0; 
-      top: 100%; /* 上ではなく下に出るように修正 */
+      top: 100%; 
       margin-top: 5px; 
       background: white; 
       border: 1px solid var(--border); 
@@ -54,7 +53,7 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
       z-index: 1000; 
       min-width: 250px; 
-      max-height: 300px; /* 長すぎる場合に備えて制限 */
+      max-height: 300px; 
       overflow-y: auto; 
     }
     .custom-options div { padding: 10px 15px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
@@ -274,7 +273,7 @@ function getCharCounts(str) {
 
 function normalizeReading(str) {
   if (!str) return "";
-  const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
+  const map = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','ni':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
   let res = "";
   for (let i = 0; i < str.length; i++) {
     if (str[i] === "ー" && i > 0) {
@@ -310,7 +309,7 @@ async function doSearch() {
   const baseLen = document.getElementById('base-len').value;
   const baseStart = document.getElementById('base-start').value;
   const baseEnd = document.getElementById('base-end').value;
-  const baseWild = document.getElementById('base-wild').value;
+  let baseWild = document.getElementById('base-wild').value;
   const dynamicRows = document.querySelectorAll('.cond-row');
   
   if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
@@ -345,8 +344,13 @@ async function doSearch() {
       if (baseLen && len != baseLen) return false;
       if (baseStart && !sReading.startsWith(baseStart)) return false;
       if (baseEnd && !sReading.endsWith(baseEnd)) return false;
+      
+      // ?検索（ワイルドカード）のロジック修正
       if (baseWild) {
-        const pattern = new RegExp('^' + baseWild.replace(/\?/g, '.') + '$');
+        // 全角・半角どちらの「？」も「.」に変換
+        let patternStr = baseWild.replace(/[?？]/g, '.');
+        // 他のメタ文字（*など）をエスケープして正規表現を作成
+        let pattern = new RegExp('^' + patternStr + '$');
         if (!pattern.test(sReading)) return false;
       }
 
