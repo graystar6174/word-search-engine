@@ -48,9 +48,15 @@
     .custom-options div { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
     .custom-options div:hover { background: #f0faff; }
     .custom-options.show { display: block; }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+
+    /* テーブル調整：オーバーフロー時に横スクロール可能に */
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); table-layout: fixed; }
     th { background: var(--primary); color: white; padding: 12px 10px; text-align: left; }
-    td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 12px 10px; border-bottom: 1px solid #f0f0f0; overflow-x: auto; white-space: nowrap; }
+    /* スクロールバーの見た目調整（任意） */
+    td::-webkit-scrollbar { height: 4px; }
+    td::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
+    
     .word-link { color: var(--primary-dark); font-weight: bold; text-decoration: underline; }
     .controls-fixed { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
     .scroll-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: bold; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; min-width: 100px; transition: 0.2s; }
@@ -231,9 +237,6 @@ function updateDropdown() {
   });
 }
 
-/**
- * 読みからファイル特定用のキー(2文字ローマ字)を生成
- */
 function getTargetKey(str) {
   if (!str) return null;
   let head = str.slice(0, 2);
@@ -248,7 +251,6 @@ function getTargetKey(str) {
   return res.toLowerCase().replace(/[^a-z]/g, "");
 }
 
-// 母音検索用変換
 function convToBoin(str) {
   const bMap = {'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'a','き':'i','く':'u','け':'e','こ':'o','さ':'a','し':'i','す':'u','せ':'e','そ':'o','た':'a','ち':'i','つ':'u','て':'e','と':'o','な':'a','に':'i','ぬ':'u','ね':'e','の':'o','は':'a','ひ':'i','ふ':'u','へ':'e','ほ':'o','ま':'a','み':'i','む':'u','め':'e','も':'o','や':'a','ゆ':'u','よ':'o','ら':'a','り':'i','る':'u','れ':'e','ろ':'o','わ':'a','を':'o','ん':'n','っ':'t','が':'a','ぎ':'i','ぐ':'u','げ':'e','ご':'o','ざ':'a','じ':'i','ず':'u','ぜ':'e','ぞ':'o','だ':'a','ぢ':'i','づ':'u','で':'e','ど':'o','ば':'a','び':'i','ぶ':'u','べ':'e','ぼ':'o','ぱ':'a','ぴ':'i','ぷ':'u','ぺ':'e','ぽ':'o','ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'a','ゅ':'u','ょ':'o'};
   let res = []; let chars = str.split("");
@@ -302,7 +304,6 @@ async function doSearch() {
     const bWild = document.getElementById('base-wild').value;
     const startChar = bStart ? bStart : (bWild ? bWild.slice(0, 2).replace(/[?？]/g, "") : "");
     
-    // 【重要】読みの先頭が判明している場合のみ、そのファイルだけを狙い撃つ
     let targetFiles = [];
     const idxRes = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
     const indexData = await idxRes.json();
@@ -313,7 +314,6 @@ async function doSearch() {
       status.innerText = `特定ファイルを読込中 (${targetKey})...`;
     } 
     
-    // 特定できない場合は全件読込
     if (targetFiles.length === 0) {
       targetFiles = indexData.files;
       status.innerText = "全データを走査中...";
