@@ -6,118 +6,79 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>集い用検索エンジンver.2</title>
   <style>
-    :root { --primary: #89c3eb; --bg: #f8fbfd; --text: #4a4a4a; --border: #d1e4f3; }
+    :root { 
+      --primary: #4a90e2; /* 濃いめの勿忘草色（青寄り・視認性UP） */
+      --primary-dark: #357abd;
+      --bg: #f0f5fa; 
+      --text: #333; 
+      --border: #adcce9; 
+    }
     body { font-family: sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
     .container { max-width: 1100px; margin: 0 auto; flex: 1; width: 100%; }
-    .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; position: relative; }
+    .search-panel { background: white; padding: 15px 20px; border-radius: 12px; border: 2px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; position: relative; }
     
-    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-    .panel-title { font-size: 0.9rem; font-weight: bold; color: var(--primary); }
-    .toggle-btn { background: var(--primary); color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; line-height: 20px; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+    .panel-title { font-size: 1rem; font-weight: bold; color: var(--primary); }
+    .toggle-btn { background: var(--primary); color: white; border: none; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     
-    #search-summary { display: none; cursor: pointer; padding: 10px; background: #f0f7ff; border-radius: 8px; border: 1px dashed var(--primary); }
+    #search-summary { display: none; cursor: pointer; padding: 10px; background: #eef7ff; border-radius: 8px; border: 1px dashed var(--primary); }
     .summary-item { display: inline-block; background: white; border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.85rem; color: #555; }
 
     .grid { display: flex; flex-wrap: wrap; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
     .input-group { display: flex; flex-direction: column; }
-    label { font-size: 0.75rem; color: #888; margin-bottom: 2px; }
+    label { font-size: 0.75rem; color: #555; margin-bottom: 2px; font-weight: bold; }
     
-    #base-len, #base-start, #base-end { width: 50px; } 
-    #base-wild { width: 120px; }
+    input, select { padding: 8px; border: 2px solid var(--border); border-radius: 6px; outline: none; font-size: 0.9rem; }
+    #base-len, #base-start, #base-end { width: 60px; } 
+    #base-wild { width: 140px; }
     input:disabled { background-color: #f0f0f0; cursor: not-allowed; color: #ccc; }
 
     #dynamic-fields { margin-bottom: 15px; }
     .cond-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f5f9; gap: 8px; flex-wrap: wrap; font-size: 0.9rem; position: relative; }
-    
-    input, select { padding: 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.9rem; }
-    input[type="number"] { width: 50px; }
-    .btn-remove { background: #ffeded; color: #ff5e5e; border: none; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
+    .btn-remove { background: #ffeded; color: #ff5e5e; border: 1px solid #fcc; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; margin-left: auto; font-size: 12px; }
 
-    /* 50音パネル用CSS */
-    .kana-panel { 
-      display: none; 
-      position: absolute; 
-      z-index: 2000; 
-      background: white; 
-      border: 1px solid var(--primary); 
-      border-radius: 8px; 
-      padding: 10px; 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15); 
-    }
-    .kana-grid { display: flex; flex-direction: row-reverse; gap: 5px; }
-    .kana-col { display: flex; flex-direction: column; gap: 5px; }
+    /* 50音パネル */
+    .kana-panel { display: none; position: absolute; z-index: 2000; background: white; border: 2px solid var(--primary); border-radius: 8px; padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .kana-grid { display: flex; flex-direction: row-reverse; gap: 6px; }
+    .kana-col { display: flex; flex-direction: column; gap: 6px; }
     .kana-btn { 
-      width: 32px; height: 32px; 
-      display: flex; align-items: center; justify-content: center; 
-      border: 1px solid #eef7fe; background: white; 
-      border-radius: 4px; cursor: pointer; font-size: 0.9rem; 
-      transition: all 0.2s;
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; 
+      border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; font-weight: bold;
     }
-    .kana-btn:hover { border-color: var(--primary); }
-    .kana-btn.selected { background: var(--primary); color: white; border-color: var(--primary); }
-    .kana-btn.empty { border: none; cursor: default; visibility: hidden; }
+    .kana-btn.selected { background: var(--primary); color: white; border-color: var(--primary-dark); }
+    .kana-btn.empty { visibility: hidden; pointer-events: none; }
 
     .button-area { margin-top: 15px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; border-top: 1px solid #eee; padding-top: 15px; }
-    .btn-search { background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .btn-search { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 0 var(--primary-dark); }
+    .btn-search:active { transform: translateY(2px); box-shadow: none; }
     
-    .filter-options { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #666; align-items: center; }
+    .filter-options { display: flex; flex-wrap: wrap; gap: 12px; font-size: 0.85rem; color: #444; align-items: center; }
     .filter-group { display: flex; align-items: center; gap: 4px; }
-    .filter-group input[type="checkbox"] { cursor: pointer; margin: 0; }
 
-    .custom-select-container { position: relative; margin-bottom: 10px; }
-    .custom-select-trigger { background: white; border: 1px dashed var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; min-width: 150px; font-size: 0.9rem; text-align: left; }
-    
-    .custom-options { 
-      display: none; 
-      position: absolute; 
-      left: 0; 
-      top: 100%; 
-      margin-top: 5px; 
-      background: white; 
-      border: 1px solid var(--border); 
-      border-radius: 8px; 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-      z-index: 1000; 
-      min-width: 250px; 
-      max-height: 300px; 
-      overflow-y: auto; 
-    }
-    .custom-options div { padding: 10px 15px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f9f9f9; }
+    .custom-select-trigger { background: white; border: 2px dashed var(--primary); color: var(--primary); padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.9rem; font-weight: bold; display: inline-block; }
+    .custom-options { display: none; position: absolute; background: white; border: 2px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 1000; min-width: 220px; }
+    .custom-options div { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
     .custom-options div:hover { background: #f0f7ff; }
     .custom-options.show { display: block; }
 
-    .status-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 5px; }
-    .sort-control { font-size: 0.85rem; color: #666; display: flex; align-items: center; gap: 5px; }
-    #sort-order { padding: 3px 8px; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; background: #fff; cursor: pointer; }
+    /* ページネーション表示 */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; font-weight: bold; }
+    .page-btn { background: white; border: 2px solid var(--primary); color: var(--primary); padding: 6px 18px; border-radius: 20px; cursor: pointer; transition: 0.2s; }
+    .page-btn:hover:not(:disabled) { background: var(--primary); color: white; }
+    .page-btn:disabled { border-color: #ccc; color: #ccc; cursor: not-allowed; }
 
     table { width: 100%; border-collapse: collapse; background: white; margin-top: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    th { background: #eef7fe; padding: 12px 10px; border-bottom: 2px solid var(--border); text-align: left; font-size: 0.85rem; color: #5a7d9a; }
-    td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 0.95rem; }
-    .word-link { color: var(--primary); font-weight: bold; text-decoration: underline; }
+    th { background: var(--primary); color: white; padding: 12px 10px; text-align: left; }
+    td { padding: 12px 10px; border-bottom: 1px solid #eee; }
+    .word-link { color: var(--primary-dark); font-weight: bold; text-decoration: underline; }
 
-    .description-footer { margin-top: 40px; padding: 30px 20px; background: #fff; border-top: 1px solid var(--border); color: #777; font-size: 0.85rem; line-height: 1.6; }
-
-    .scroll-btn {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px 15px;
-      border-radius: 50px;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 0.85rem;
-      font-weight: bold;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      line-height: 1.2;
+    /* 固定コントロール */
+    .controls-fixed { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 9999; }
+    .scroll-btn { 
+      background: var(--primary); color: white; border: none; padding: 12px; border-radius: 50px; 
+      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); font-weight: bold; font-size: 0.8rem;
+      display: flex; flex-direction: column; align-items: center; min-width: 90px;
     }
-    .scroll-btn:hover { opacity: 0.9; transform: translateY(-2px); }
-    .scroll-btn span { font-size: 0.7rem; opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -126,7 +87,7 @@
   </div>
 
   <div class="container">
-    <h1 style="color:var(--primary); font-weight:normal; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px;">集い用検索エンジンver.2</h1>
+    <h1 style="color:var(--primary-dark); border-bottom: 2px solid var(--primary); padding-bottom: 10px;">集い用検索エンジンver.2</h1>
     
     <div class="search-panel" id="panel">
       <div class="panel-header">
@@ -141,21 +102,16 @@
           <div class="input-group"><label>終了</label><input type="text" id="base-end"></div>
           <div class="input-group"><label>？検索</label><input type="text" id="base-wild" oninput="handleWildInput(this)"></div>
         </div>
-
         <div id="dynamic-fields"></div>
-
-        <div class="custom-select-container">
-          <div class="custom-select-trigger" id="dropdown-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
+        <div class="custom-select-container" style="position:relative;">
+          <div class="custom-select-trigger" onclick="toggleDropdown(event)">＋ 条件を追加</div>
           <div class="custom-options" id="custom-options"></div>
         </div>
 
         <div class="button-area">
           <button class="btn-search" onclick="doSearch()">検索を実行</button>
-          
           <div class="filter-options">
-            <div class="filter-group">
-              <input type="checkbox" id="filter-general"> <label for="filter-general">一般的のみ</label>
-            </div>
+            <div class="filter-group"><input type="checkbox" id="filter-general"> <label for="filter-general">一般的のみ</label></div>
             <span style="color:#ddd">|</span>
             <div class="filter-group"><input type="checkbox" id="ex-proper" onchange="syncProper(this)"> <label for="ex-proper">固有名詞除外</label></div>
             <div class="filter-group"><input type="checkbox" id="ex-person" class="sub-ex"> <label for="ex-person">人名</label></div>
@@ -168,37 +124,45 @@
       <div id="search-summary" onclick="togglePanel()"></div>
     </div>
     
-    <div class="status-bar">
-      <p id="status" style="margin:0;">条件を入力して検索ボタンを押してください。</p>
-      <div class="sort-control">
-        <span>⇅ ソート:</span>
-        <select id="sort-order" onchange="applySortAndRender()">
-          <option value="len-asc">文字数 昇順</option>
-          <option value="len-desc">文字数 降順</option>
-        </select>
+    <div class="status-bar" style="display:flex; justify-content:space-between; align-items:center;">
+      <p id="status" style="margin:0; font-weight:bold;">条件を入力して検索してください。</p>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="page-display" style="font-size:0.9rem; color:var(--primary-dark); font-weight:bold;"></span>
+        <div class="sort-control">
+          <select id="sort-order" onchange="applySortAndRender()">
+            <option value="len-asc">文字数 昇順</option>
+            <option value="len-desc">文字数 降順</option>
+          </select>
+        </div>
       </div>
     </div>
+
+    <div id="pagination-top" class="pagination"></div>
 
     <table>
       <thead><tr><th style="width:10%">文字数</th><th style="width:25%">単語</th><th style="width:25%">読み</th><th style="width:40%">備考</th></tr></thead>
       <tbody id="results"></tbody>
     </table>
+
+    <div id="pagination-bottom" class="pagination"></div>
   </div>
 
-  <button class="scroll-btn" onclick="window.scrollBy({top: 4500, behavior: 'smooth'})">
-    ▼ <span>100件下へ</span>
-  </button>
+  <div class="controls-fixed">
+    <button class="scroll-btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">▲ TOP</button>
+    <button class="scroll-btn" onclick="window.scrollBy({top: 800, behavior: 'smooth'})">▼ 20件下へ</button>
+  </div>
 
-  <footer class="description-footer" id="footer-area"></footer>
+  <footer class="description-footer" id="footer-area" style="padding:30px; text-align:center; color:#888;"></footer>
 
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 let activeConditions = new Set();
 let currentFilteredData = [];
 let activeInput = null;
+let currentPage = 1;
+const pageSize = 100;
 
 const KANA_ORDER = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
-
 const KANA_MAP_DATA = [
   ['あ','い','う','え','お'],
   ['か','き','く','け','こ'],
@@ -207,9 +171,9 @@ const KANA_MAP_DATA = [
   ['な','に','ぬ','ね','の'],
   ['は','ひ','ふ','へ','ほ'],
   ['ま','み','む','め','も'],
-  ['や','','ゆ','','よ'],
+  ['や','','ゆ','','よ'], // や行修正
   ['ら','り','る','れ','ろ'],
-  ['わ','','','','を'],
+  ['わ','','','','を'], // わ行修正
   ['ん','','','','']
 ];
 
@@ -220,30 +184,17 @@ function initKanaPanel() {
     colDiv.className = 'kana-col';
     col.forEach(char => {
       const btn = document.createElement('div');
-      if (char === '') {
-        btn.className = 'kana-btn empty';
-      } else {
-        btn.className = 'kana-btn';
+      btn.className = char === '' ? 'kana-btn empty' : 'kana-btn';
+      if (char !== '') {
         btn.textContent = char;
         btn.dataset.char = char;
         btn.onclick = (e) => {
           e.stopPropagation();
           if (!activeInput) return;
-          
-          let currentVal = activeInput.value;
-          if (currentVal.includes(char)) {
-            // 既に含まれていれば削除
-            currentVal = currentVal.replace(char, '');
-          } else {
-            // 含まれていなければ追加
-            currentVal += char;
-          }
-          
-          // 五十音順にソート
-          activeInput.value = currentVal.split('').sort((a, b) => {
-            return KANA_ORDER.indexOf(a) - KANA_ORDER.indexOf(b);
-          }).join('');
-          
+          let vals = activeInput.value.split('');
+          if (vals.includes(char)) vals = vals.filter(c => c !== char);
+          else vals.push(char);
+          activeInput.value = vals.sort((a, b) => KANA_ORDER.indexOf(a) - KANA_ORDER.indexOf(b)).join('');
           updatePanelSelection();
           activeInput.dispatchEvent(new Event('input'));
         };
@@ -258,15 +209,10 @@ function updatePanelSelection() {
   if (!activeInput) return;
   const currentChars = activeInput.value;
   document.querySelectorAll('.kana-btn:not(.empty)').forEach(btn => {
-    if (currentChars.includes(btn.dataset.char)) {
-      btn.classList.add('selected');
-    } else {
-      btn.classList.remove('selected');
-    }
+    btn.classList.toggle('selected', currentChars.includes(btn.dataset.char));
   });
 }
 
-// 50音パネル表示管理
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('kana-panel');
   if (e.target.classList.contains('kana-trigger')) {
@@ -279,7 +225,6 @@ document.addEventListener('click', (e) => {
   } else if (!panel.contains(e.target)) {
     panel.style.display = 'none';
   }
-  
   if (!e.target.closest('.custom-select-container')) {
     document.getElementById('custom-options').classList.remove('show');
   }
@@ -287,17 +232,12 @@ document.addEventListener('click', (e) => {
 
 function handleWildInput(el) {
   const lenInput = document.getElementById('base-len');
-  if (el.value.trim() !== "") {
-    lenInput.disabled = true;
-    lenInput.value = "";
-  } else {
-    lenInput.disabled = false;
-  }
+  if (el.value.trim() !== "") { lenInput.disabled = true; lenInput.value = ""; } 
+  else { lenInput.disabled = false; }
 }
 
 function syncProper(master) {
-  const subs = document.querySelectorAll('.sub-ex');
-  subs.forEach(s => s.checked = master.checked);
+  document.querySelectorAll('.sub-ex').forEach(s => s.checked = master.checked);
 }
 
 const COND_MASTER = [
@@ -315,7 +255,7 @@ const COND_MASTER = [
 window.onload = () => {
   initKanaPanel();
   updateDropdown();
-  document.getElementById('footer-area').innerHTML = `<h3>説明とか</h3><p>別に言うことない。</p>`;
+  document.getElementById('footer-area').innerHTML = `<p>データ取得先: ${REPO_URL}</p>`;
 };
 
 function toggleDropdown(event) {
@@ -349,24 +289,20 @@ function addNewField(val) {
   const master = COND_MASTER.find(m => m.val === val);
   if (master.singleton) activeConditions.add(val);
   if (master.group) activeConditions.add(master.group);
-
   const container = document.getElementById('dynamic-fields');
   const row = document.createElement('div');
   row.className = 'cond-row';
   row.dataset.type = val;
-  row.dataset.group = master.group || "";
-  
   let h = '';
-  if(val==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:50px">`;
-  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
+  if(val==='n-pos') h = `<input type="number" class="val1" style="width:40px"> 文字目が <input type="text" class="val2" style="width:50px">`;
+  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2" style="width:40px"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option><option value="le">以下</option></select> 含む`;
   if(val==='seq') h = `<input type="text" class="val1" style="width:80px"> の並びを含む`; 
   if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px">`;
   if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px">`;
-  if(val==='all-in') h = `全て含む：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="タップして選択">`;
-  if(val==='only') h = `構成文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="タップして選択">`;
-  if(val==='excl') h = `除外文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="タップして選択">`;
-  if(val==='replace') h = `<input type="text" class="val1" style="width:70px"> → <input type="text" class="val2" style="width:70px"> に置換して成立`;
-  
+  if(val==='all-in') h = `全て含む：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
+  if(val==='only') h = `構成文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
+  if(val==='excl') h = `除外文字：<input type="text" class="val1 kana-trigger" style="width:150px" readonly placeholder="選択">`;
+  if(val==='replace') h = `<input type="text" class="val1" style="width:70px"> → <input type="text" class="val2" style="width:70px"> に置換`;
   row.innerHTML = h + `<button class="btn-remove" onclick="removeField(this, '${val}', '${master.group || ""}')">×</button>`;
   container.appendChild(row);
   updateDropdown();
@@ -380,30 +316,25 @@ function removeField(btn, val, group) {
 }
 
 function updateDropdown() {
-  const optionsDiv = document.getElementById('custom-options');
-  optionsDiv.innerHTML = '';
+  const div = document.getElementById('custom-options');
+  div.innerHTML = '';
   COND_MASTER.forEach(m => {
-    if (m.singleton && activeConditions.has(m.val)) return;
-    if (m.group && activeConditions.has(m.group)) return;
+    if ((m.singleton && activeConditions.has(m.val)) || (m.group && activeConditions.has(m.group))) return;
     const opt = document.createElement('div');
     opt.textContent = m.text;
-    opt.onclick = () => addNewField(m.val);
-    optionsDiv.appendChild(opt);
+    opt.onclick = () => { addNewField(m.val); div.classList.remove('show'); };
+    div.appendChild(opt);
   });
 }
 
 function normalizeReading(str) {
   if (!str) return "";
-  const boinMap = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','の':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
+  const boinMap = { 'あ':'あ','い':'い','う':'う','え':'え','お':'お','か':'あ','き':'い','く':'う','け':'え','こ':'お','さ':'あ','し':'い','す':'う','せ':'え','そ':'お','た':'あ','ち':'い','つ':'う','て':'え','と':'お','な':'あ','に':'い','ぬ':'う','ね':'え','受':'お','は':'あ','ひ':'い','ふ':'う','へ':'え','ほ':'お','ま':'あ','み':'い','む':'う','め':'え','も':'お','や':'あ','ゆ':'う','よ':'お','ら':'あ','り':'い','る':'う','れ':'え','ろ':'お','わ':'あ','を':'お','ん':'ん','が':'あ','ぎ':'い','ぐ':'う','げ':'え','ご':'お','ざ':'あ','じ':'い','ず':'う','ぜ':'え','ぞ':'お','だ':'あ','ぢ':'い','づ':'う','で':'え','ど':'お','ば':'あ','び':'い','ぶ':'う','べ':'え','ぼ':'お','ぱ':'あ','ぴ':'い','ぷ':'う','ぺ':'え','ぽ':'お','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'あ','ゅ':'う','ょ':'お','っ':'つ' };
   const seionMap = {'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ','ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ','だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と','ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ','ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ','っ':'つ','ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お','ゃ':'や','ゅ':'ゆ','ょ':'よ'};
-  
   let res = "";
   for (let i = 0; i < str.length; i++) {
-    if (str[i] === "ー" && i > 0) {
-      res += boinMap[str[i-1]] || "ー";
-    } else {
-      res += seionMap[str[i]] || str[i];
-    }
+    if (str[i] === "ー" && i > 0) res += boinMap[str[i-1]] || "ー";
+    else res += seionMap[str[i]] || str[i];
   }
   return res;
 }
@@ -411,20 +342,44 @@ function normalizeReading(str) {
 function applySortAndRender() {
   const order = document.getElementById("sort-order").value;
   currentFilteredData.sort((a, b) => {
-    const readA = a[1];
-    const readB = b[1];
     if (order === "len-asc") { if (a[4] !== b[4]) return a[4] - b[4]; }
     else if (order === "len-desc") { if (a[4] !== b[4]) return b[4] - a[4]; }
-    return readA.localeCompare(readB, 'ja');
+    return String(a[1]).localeCompare(String(b[1]), 'ja');
   });
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
   const tbody = document.getElementById("results");
-  tbody.innerHTML = currentFilteredData.map(r => `
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = currentFilteredData.slice(start, end);
+  const totalPages = Math.ceil(currentFilteredData.length / pageSize) || 1;
+
+  tbody.innerHTML = pageData.map(r => `
     <tr>
       <td>${r[4]}</td>
       <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
       <td>${r[1]}</td>
       <td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td>
     </tr>`).join("");
+
+  document.getElementById('page-display').innerText = `${currentFilteredData.length}件 (${currentPage} / ${totalPages} ページ)`;
+  
+  const paginationHtml = `
+    <button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(-1)">前へ</button>
+    <span style="margin:0 10px">${currentPage} / ${totalPages}</span>
+    <button class="page-btn" ${currentPage >= totalPages ? 'disabled' : ''} onclick="changePage(1)">次へ</button>
+  `;
+  document.getElementById('pagination-top').innerHTML = paginationHtml;
+  document.getElementById('pagination-bottom').innerHTML = paginationHtml;
+}
+
+function changePage(step) {
+  currentPage += step;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  renderTable();
 }
 
 async function doSearch() {
@@ -432,24 +387,9 @@ async function doSearch() {
   const baseLenInput = document.getElementById('base-len');
   const baseStart = document.getElementById('base-start').value;
   const baseEnd = document.getElementById('base-end').value;
-  let baseWild = document.getElementById('base-wild').value;
+  const baseWild = document.getElementById('base-wild').value;
   const dynamicRows = document.querySelectorAll('.cond-row');
-  
   const baseLen = baseWild ? null : baseLenInput.value;
-
-  if (!baseLen && !baseStart && !baseEnd && !baseWild && dynamicRows.length === 0) {
-    status.innerText = "検索条件を入力してください。";
-    document.getElementById("results").innerHTML = "";
-    return;
-  }
-
-  const onlyGeneral = document.getElementById('filter-general').checked;
-  const exCats = [];
-  if(document.getElementById('ex-proper').checked) exCats.push("固有名詞");
-  if(document.getElementById('ex-person').checked) exCats.push("人名");
-  if(document.getElementById('ex-place').checked) exCats.push("地名");
-  if(document.getElementById('ex-work').checked) exCats.push("作品名");
-  const exVerb = document.getElementById('ex-verb').checked;
 
   status.innerText = "データ読み込み中...";
   try {
@@ -460,33 +400,32 @@ async function doSearch() {
     const allData = chunkResults.flat();
     const allReadings = new Set(allData.map(d => String(d[1])));
 
-    currentFilteredData = allData.filter(row => {
-      const [word, reading, note, boin, len, isGen, attr, katsuyo] = row;
-      const sReading = String(reading || "");
-      const sAttr = String(attr || "");
-      const sBoin = String(boin || "");
+    const onlyGeneral = document.getElementById('filter-general').checked;
+    const exCats = [];
+    if(document.getElementById('ex-proper').checked) exCats.push("固有名詞");
+    if(document.getElementById('ex-person').checked) exCats.push("人名");
+    if(document.getElementById('ex-place').checked) exCats.push("地名");
+    if(document.getElementById('ex-work').checked) exCats.push("作品名");
+    const exVerb = document.getElementById('ex-verb').checked;
 
+    currentFilteredData = allData.filter(row => {
+      const [word, reading, note, boin, len, isGen, attr] = row;
+      const sReading = String(reading || "");
       if (baseLen && len != baseLen) return false;
       if (baseStart && !sReading.startsWith(baseStart)) return false;
       if (baseEnd && !sReading.endsWith(baseEnd)) return false;
-      
       if (baseWild) {
         if (sReading.length !== baseWild.length) return false;
-        let patternStr = baseWild.replace(/[?？]/g, '.');
-        let pattern = new RegExp('^' + patternStr + '$');
-        if (!pattern.test(sReading)) return false;
+        if (!(new RegExp('^' + baseWild.replace(/[?？]/g, '.') + '$')).test(sReading)) return false;
       }
-
       if (onlyGeneral && isGen !== "一般的") return false;
-      if (exCats.some(cat => sAttr.includes(cat))) return false;
-      if (exVerb && sAttr.includes("動詞")) return false;
+      if (exCats.some(cat => String(attr).includes(cat))) return false;
+      if (exVerb && String(attr).includes("動詞")) return false;
 
       for (const dRow of dynamicRows) {
         const type = dRow.dataset.type;
         const v1 = dRow.querySelector('.val1')?.value;
         const v2 = dRow.querySelector('.val2')?.value;
-        if (!v1 && type !== 'replace') continue;
-
         if (type === 'n-pos') { if (sReading[parseInt(v1)-1] !== v2) return false; }
         else if (type === 'contains-n') {
           const count = (sReading.split(v1).length - 1);
@@ -497,22 +436,17 @@ async function doSearch() {
           if (op === 'le' && count > targetNum) return false;
         }
         else if (type === 'seq' && !sReading.includes(v1)) return false;
-        else if (type === 'rhyme-full' && sBoin !== v1) return false;
-        else if (type === 'rhyme-end' && !sBoin.endsWith(v1)) return false;
+        else if (type === 'rhyme-full' && String(boin) !== v1) return false;
+        else if (type === 'rhyme-end' && !String(boin).endsWith(v1)) return false;
         else if (type === 'all-in' || type === 'only' || type === 'excl') {
           const normRead = normalizeReading(sReading);
-          if (type === 'all-in') {
-            for (const char of v1) { if (!normRead.includes(char)) return false; }
-          } else if (type === 'only') {
-            for (const char of normRead) { if (!v1.includes(char)) return false; }
-          } else if (type === 'excl') {
-            for (const char of v1) { if (normRead.includes(char)) return false; }
-          }
+          if (type === 'all-in') { for (const char of v1) if (!normRead.includes(char)) return false; } 
+          else if (type === 'only') { for (const char of normRead) if (!v1.includes(char)) return false; } 
+          else if (type === 'excl') { for (const char of v1) if (normRead.includes(char)) return false; }
         }
         else if (type === 'replace') {
           if (!sReading.includes(v1)) return false;
-          const replaced = sReading.split(v1).join(v2 || "");
-          if (!allReadings.has(replaced)) return false;
+          if (!allReadings.has(sReading.split(v1).join(v2 || ""))) return false;
         }
       }
       return true;
