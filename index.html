@@ -109,7 +109,6 @@
 <script>
 const REPO_URL = "https://graystar6174.github.io/word-search-engine/data";
 
-// カテゴリ除外の連動ロジック
 function syncProper(master) {
   const subs = document.querySelectorAll('.sub-ex');
   subs.forEach(s => s.checked = master.checked);
@@ -119,23 +118,18 @@ const COND_MASTER = [
   { val: "n-pos", text: "n文字目の指定", multi: true },
   { val: "contains-n", text: "特定の文字をn回含む", multi: true },
   { val: "seq", text: "の並びを含む", multi: true }, 
-  { val: "replace", text: "置換して成り立つか", multi: true },
-  { val: "all-in", text: "全て含む", multi: false },
-  { val: "rhyme-full", text: "韻（完全一致）", multi: false, group: "rhyme" },
-  { val: "rhyme-end", text: "韻（脚韻）", multi: false, group: "rhyme" },
-  { val: "only", text: "構成文字のみ", multi: false },
-  { val: "excl", text: "除外文字", multi: false }
+  { val: "rhyme-full", text: "韻（完全一致）", multi: false },
+  { val: "rhyme-end", text: "韻（脚韻）", multi: false }
 ];
 
 window.onload = () => {
   updateDropdown();
-  document.getElementById('footer-area').innerHTML = `<h3>ご利用方法 / 備考</h3><p>スプレッドシートから同期された最新のデータで検索を行います。母音一致（韻）や、特殊な並び順での絞り込みが可能です。</p>`;
+  document.getElementById('footer-area').innerHTML = `<h3>ご利用方法 / 備考</h3><p>最新のデータで検索を行います。デプロイ直後は反映まで数分かかる場合があります。</p>`;
 };
 
 function toggleDropdown(e) {
   e.stopPropagation();
-  const optionsDiv = document.getElementById('custom-options');
-  optionsDiv.classList.toggle('show');
+  document.getElementById('custom-options').classList.toggle('show');
 }
 
 function togglePanel() {
@@ -166,15 +160,14 @@ function addNewField(val) {
   row.dataset.type = val;
   let h = '';
   if(val==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:50px">`;
-  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option></select> 含む`;
+  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 含む`;
   if(val==='seq') h = `<input type="text" class="val1" style="width:80px"> の並びを含む`; 
   if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px">`;
   if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px">`;
   
-  row.innerHTML = h + `<button class="btn-remove" onclick="this.parentNode.remove(); updateDropdown();">×</button>`;
+  row.innerHTML = h + `<button class="btn-remove" onclick="this.parentNode.remove();">×</button>`;
   container.appendChild(row);
   document.getElementById('custom-options').classList.remove('show');
-  updateDropdown();
 }
 
 function updateDropdown() {
@@ -192,7 +185,6 @@ async function doSearch() {
   const status = document.getElementById("status");
   const tbody = document.getElementById("results");
   
-  // フィルタ状態取得
   const onlyGeneral = document.getElementById('filter-general').checked;
   const exCats = [];
   if(document.getElementById('ex-proper').checked) exCats.push("固有名詞");
@@ -203,45 +195,47 @@ async function doSearch() {
 
   status.innerText = "読み込み中...";
   try {
-    const resIdx = await fetch(`${REPO_URL}/index.json`);
+    // キャッシュ回避のためタイムスタンプを付与
+    const resIdx = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
     const indexData = await resIdx.json();
-    const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file}`).then(r => r.json()));
+    const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file}?t=${Date.now()}`).then(r => r.json()));
     const chunkResults = await Promise.all(promises);
     const allData = chunkResults.flat();
 
     const filtered = allData.filter(row => {
-      // GASの構造: 0:単語, 1:読み, 2:備考, 3:韻, 4:文字数, 5:一般的, 6:属性, 7:活用
+      // GAS側: [word, reading, note, boin, length, isGeneral, attr, katsuyo]
       const [word, reading, note, boin, length, isGeneral, attr, katsuyo] = row;
       
-      // 1. 文字数などの基本条件
+      // 安全策（null対策）
+      const sReading = String(reading || "");
+      const sAttr = String(attr || "");
+      const sBoin = String(boin || "");
+
       const baseLen = document.getElementById('base-len').value;
       if (baseLen && length != baseLen) return false;
       
       const bStart = document.getElementById('base-start').value;
-      if (bStart && !reading.startsWith(bStart)) return false;
+      if (bStart && !sReading.startsWith(bStart)) return false;
 
       const bEnd = document.getElementById('base-end').value;
-      if (bEnd && !reading.endsWith(bEnd)) return false;
+      if (bEnd && !sReading.endsWith(bEnd)) return false;
 
-      // 2. 一般的フィルタ
       if (onlyGeneral && isGeneral !== "一般的") return false;
+      if (exCats.some(cat => sAttr.includes(cat))) return false;
+      if (exVerb && sAttr.includes("動詞")) return false;
 
-      // 3. カテゴリ除外フィルタ
-      if (exCats.some(cat => attr.includes(cat))) return false;
-      if (exVerb && attr.includes("動詞")) return false;
-
-      // 4. 動的条件（韻など）
       const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
       for (const dRow of dynamicRows) {
         const type = dRow.dataset.type;
         const v1 = dRow.querySelector('.val1')?.value;
-        if (type === 'rhyme-full' && v1 && boin !== v1) return false;
-        if (type === 'rhyme-end' && v1 && !boin.endsWith(v1)) return false;
-        if (type === 'seq' && v1 && !reading.includes(v1)) return false;
-        if (type === 'n-pos' && v1) {
+        if (!v1) continue;
+        if (type === 'rhyme-full' && sBoin !== v1) return false;
+        if (type === 'rhyme-end' && !sBoin.endsWith(v1)) return false;
+        if (type === 'seq' && !sReading.includes(v1)) return false;
+        if (type === 'n-pos') {
           const pos = parseInt(v1) - 1;
           const char = dRow.querySelector('.val2').value;
-          if (reading[pos] !== char) return false;
+          if (sReading[pos] !== char) return false;
         }
       }
       return true;
@@ -253,7 +247,7 @@ async function doSearch() {
         <td>${r[4]}</td>
         <td><a class="word-link" target="_blank" href="https://www.google.com/search?q=${encodeURIComponent(r[0])}">${r[0]}</a></td>
         <td>${r[1]}</td>
-        <td><small style="color:#888">[${r[6]}]</small> ${r[2]}</td>
+        <td><small style="color:#888">[${r[6] || ""}]</small> ${r[2] || ""}</td>
       </tr>`).join("");
   } catch (err) {
     status.innerText = "エラー発生: " + err;
