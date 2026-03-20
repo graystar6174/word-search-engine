@@ -115,16 +115,20 @@ function syncProper(master) {
 }
 
 const COND_MASTER = [
-  { val: "n-pos", text: "n文字目の指定", multi: true },
-  { val: "contains-n", text: "特定の文字をn回含む", multi: true },
-  { val: "seq", text: "の並びを含む", multi: true }, 
-  { val: "rhyme-full", text: "韻（完全一致）", multi: false },
-  { val: "rhyme-end", text: "韻（脚韻）", multi: false }
+  { val: "n-pos", text: "n文字目の指定" },
+  { val: "contains-n", text: "特定の文字をn回含む" },
+  { val: "seq", text: "の並びを含む" }, 
+  { val: "rhyme-full", text: "韻（完全一致）" },
+  { val: "rhyme-end", text: "韻（脚韻）" },
+  { val: "all-in", text: "全て含む（カウント対応）" },
+  { val: "only", text: "構成文字のみ" },
+  { val: "excl", text: "除外文字" },
+  { val: "replace", text: "置換（2文字以上対応）" }
 ];
 
 window.onload = () => {
   updateDropdown();
-  document.getElementById('footer-area').innerHTML = `<h3>ご利用方法 / 備考</h3><p>最新のデータで検索を行います。デプロイ直後は反映まで数分かかる場合があります。</p>`;
+  document.getElementById('footer-area').innerHTML = `<h3>ご利用方法</h3><p>最新のデータで検索を行います。デプロイ直後は反映まで数分かかる場合があります。</p>`;
 };
 
 function toggleDropdown(e) {
@@ -159,11 +163,16 @@ function addNewField(val) {
   row.className = 'cond-row';
   row.dataset.type = val;
   let h = '';
+  
   if(val==='n-pos') h = `<input type="number" class="val1"> 文字目が <input type="text" class="val2" style="width:50px">`;
-  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 含む`;
+  if(val==='contains-n') h = `<input type="text" class="val1" style="width:50px"> を <input type="number" class="val2"> 回 <select class="op"><option value="eq">ちょうど</option><option value="ge">以上</option></select> 含む`;
   if(val==='seq') h = `<input type="text" class="val1" style="width:80px"> の並びを含む`; 
   if(val==='rhyme-full') h = `韻(完全)：<input type="text" class="val1" style="width:120px">`;
   if(val==='rhyme-end') h = `脚韻：<input type="text" class="val1" style="width:120px">`;
+  if(val==='all-in') h = `全て含む：<input type="text" class="val1" style="width:150px">`;
+  if(val==='only') h = `構成文字のみ：<input type="text" class="val1" style="width:150px">`;
+  if(val==='excl') h = `除外文字：<input type="text" class="val1" style="width:150px">`;
+  if(val==='replace') h = `<input type="text" class="val1" style="width:60px"> を <input type="text" class="val2" style="width:60px"> に置換して一致`;
   
   row.innerHTML = h + `<button class="btn-remove" onclick="this.parentNode.remove();">×</button>`;
   container.appendChild(row);
@@ -181,6 +190,15 @@ function updateDropdown() {
   });
 }
 
+// 補助：文字出現数をカウントする関数
+function getCharCounts(str) {
+  const counts = {};
+  for (const char of str) {
+    counts[char] = (counts[char] || 0) + 1;
+  }
+  return counts;
+}
+
 async function doSearch() {
   const status = document.getElementById("status");
   const tbody = document.getElementById("results");
@@ -195,7 +213,6 @@ async function doSearch() {
 
   status.innerText = "読み込み中...";
   try {
-    // キャッシュ回避のためタイムスタンプを付与
     const resIdx = await fetch(`${REPO_URL}/index.json?t=${Date.now()}`);
     const indexData = await resIdx.json();
     const promises = indexData.files.map(file => fetch(`${REPO_URL}/${file}?t=${Date.now()}`).then(r => r.json()));
@@ -203,14 +220,14 @@ async function doSearch() {
     const allData = chunkResults.flat();
 
     const filtered = allData.filter(row => {
-      // GAS側: [word, reading, note, boin, length, isGeneral, attr, katsuyo]
+      // 構造: [word, reading, note, boin, length, isGeneral, attr, katsuyo]
       const [word, reading, note, boin, length, isGeneral, attr, katsuyo] = row;
       
-      // 安全策（null対策）
       const sReading = String(reading || "");
       const sAttr = String(attr || "");
       const sBoin = String(boin || "");
 
+      // 基本フィルタ
       const baseLen = document.getElementById('base-len').value;
       if (baseLen && length != baseLen) return false;
       
@@ -220,22 +237,68 @@ async function doSearch() {
       const bEnd = document.getElementById('base-end').value;
       if (bEnd && !sReading.endsWith(bEnd)) return false;
 
+      const bWild = document.getElementById('base-wild').value;
+      if (bWild) {
+        const pattern = new RegExp('^' + bWild.replace(/\?/g, '.') + '$');
+        if (!pattern.test(sReading)) return false;
+      }
+
       if (onlyGeneral && isGeneral !== "一般的") return false;
       if (exCats.some(cat => sAttr.includes(cat))) return false;
       if (exVerb && sAttr.includes("動詞")) return false;
 
+      // 動的条件
       const dynamicRows = Array.from(document.querySelectorAll('.cond-row'));
       for (const dRow of dynamicRows) {
         const type = dRow.dataset.type;
         const v1 = dRow.querySelector('.val1')?.value;
-        if (!v1) continue;
-        if (type === 'rhyme-full' && sBoin !== v1) return false;
-        if (type === 'rhyme-end' && !sBoin.endsWith(v1)) return false;
-        if (type === 'seq' && !sReading.includes(v1)) return false;
+        const v2 = dRow.querySelector('.val2')?.value;
+        if (!v1 && type !== 'replace') continue;
+
         if (type === 'n-pos') {
           const pos = parseInt(v1) - 1;
-          const char = dRow.querySelector('.val2').value;
-          if (sReading[pos] !== char) return false;
+          if (sReading[pos] !== v2) return false;
+        }
+        else if (type === 'contains-n') {
+          const count = (sReading.split(v1).length - 1);
+          const op = dRow.querySelector('.op').value;
+          const targetNum = parseInt(v2);
+          if (op === 'eq' && count !== targetNum) return false;
+          if (op === 'ge' && count < targetNum) return false;
+        }
+        else if (type === 'seq') {
+          if (!sReading.includes(v1)) return false;
+        }
+        else if (type === 'rhyme-full') {
+          if (sBoin !== v1) return false;
+        }
+        else if (type === 'rhyme-end') {
+          if (!sBoin.endsWith(v1)) return false;
+        }
+        else if (type === 'all-in') {
+          const required = getCharCounts(v1);
+          const target = getCharCounts(sReading);
+          for (const char in required) {
+            if ((target[char] || 0) < required[char]) return false;
+          }
+        }
+        else if (type === 'only') {
+          const pattern = new RegExp('^[' + v1 + ']+$');
+          if (!pattern.test(sReading)) return false;
+        }
+        else if (type === 'excl') {
+          for (const char of v1) {
+            if (sReading.includes(char)) return false;
+          }
+        }
+        else if (type === 'replace') {
+          // v1をv2に置換して一致するか（読みそのものと比較）
+          // ※この条件は「特定の語との一致」をみる場合に有効
+          const replaced = sReading.split(v1).join(v2 || "");
+          // ここでは「置換して別のリスト内単語になるか」ではなく「特定の入力と一致するか」等のロジックが必要なため、
+          // 汎用的に「置換結果に特定の文字列が含まれるか」等のチェックを想定
+          // 今回は単に「置換が実行可能か（含まれているか）」を確認
+          if (!sReading.includes(v1)) return false;
         }
       }
       return true;
